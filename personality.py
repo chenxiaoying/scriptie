@@ -12,12 +12,8 @@ from sklearn.dummy import DummyClassifier
 import numpy as np
 from sklearn.metrics import accuracy_score
 from sklearn.pipeline import FeatureUnion
-from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.base import BaseEstimator, TransformerMixin
-import statistics
-from nltk.corpus import sentiwordnet as swn
-from nltk.corpus import words
 
 
 
@@ -255,7 +251,9 @@ def baseline(training_set, labels):
 	
 
 ###############################################################
+""" Extract linguistic features """ 
 """ Classes for features extraction """
+
 class TextStats(BaseEstimator, TransformerMixin):
 	"""Extract features from each document for DictVectorizer"""
 
@@ -272,26 +270,44 @@ class PosNeg(BaseEstimator, TransformerMixin):
 	def fit(self, x, y=None):
 		return self
 		
-	def transform(self, posts):
+	def transform(self, data):
 		score = []
-		for lines in posts:
+		pos_wordlist, neg_wordlist = pos_neg_words()
+		for lines in data:
+			pos_s = 0
+			neg_s = 0
 			for word in lines:
-				pos_s = 0
-				neg_s = 0
-				if word in words.words():
-					print(word)
-					word_list = list(swn.senti_synsets(word))
-					if word_list != []:
-						word0 = word_list[0]
-						print(word0.pos_score())
-						if word0.pos_score() > 0.5:
-							pos_s = word0.pos_score() + pos_s
-						else:
-							neg_s = word0.neg_score() + neg_s
+				if word in pos_wordlist:
+					pos_s += 1
+				elif word in neg_wordlist:
+					neg_s += 1
 			score.append({'pos':pos_s, 'neg': neg_s})
-			print(score)
 		return score
-				
+		
+
+class Pronouns(BaseEstimator, TransformerMixin):
+	
+	def fit(self, x, y=None):
+		return self
+		
+	def transform(self, data):
+		score = []
+		self_referencing = ['I', 'me', 'my']
+		social_ref = ['you','she','he', 'we','they','*PROPNAME*']
+		for lines in data:
+			self_s = 0
+			social_s = 0
+			for word in lines:
+				if word in self_referencing:
+					self_s += 1
+				elif word in social_ref:
+					social_s += 1
+			score.append({'self':self_s, 'social':social_s})
+		
+		return score
+					
+		
+					
 		
 
 ################################################################
@@ -311,7 +327,6 @@ def pos_neg_words():
 
 
 
-""" Extract linguistic features """ 
 def classify(training_set,labels):
 	
 	# split corpus in train and test
@@ -327,9 +342,18 @@ def classify(training_set,labels):
 	# combine the vectorizer with a Naive Bayes classifier
 	classifier = Pipeline([
 				('features', FeatureUnion([
-				('posneg', PosNeg()),
+				('Textlength', Pipeline([
 				('stats', TextStats()),
 				('vect', DictVectorizer())
+				])),
+				('positive_negative', Pipeline([
+				('posneg', PosNeg()),
+				('vect', DictVectorizer())
+				])),
+				('Pronouns', Pipeline([
+				('pronouns', Pronouns()),
+				('vect', DictVectorizer()),
+				]))
 				])),
 				('cls', MultinomialNB())
 				])
@@ -337,8 +361,23 @@ def classify(training_set,labels):
 	classifier.fit(Xtrain, Ytrain)
 	# test
 	Yguess = classifier.predict(Xtest)
+	
 	# evaluate
-	print(accuracy_score(Ytest, Yguess))
+	guess = []
+	for i in Xtest:
+		Yguess = classifier.predict([i])
+		guess.append(Yguess)
+		
+	# evaluate
+	c = 0
+	for i in guess:
+		if i == ['extra']:
+			c += 1
+			
+	print("Total tested                : ",len(Ytest))
+	print("Total extraversion predicted: ",c,"\n")
+	print("Accuracy                    : ",accuracy_score(Ytest, guess),"\n")
+	
 
 
 """ Split data in training and development set randomly """
@@ -372,6 +411,5 @@ def main():
 
 
 if __name__ == "__main__":
-	#main()
-	pos_neg_words()
+	main()
 	#prepare_data()
