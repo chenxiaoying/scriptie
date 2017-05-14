@@ -3,6 +3,7 @@ import csv
 import nltk
 from random import shuffle
 import pickle
+import nltk.classify
 
 import collections, itertools
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
@@ -10,12 +11,24 @@ from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
 from sklearn.dummy import DummyClassifier
 import numpy as np
-from sklearn.metrics import accuracy_score
+from sklearn import metrics
 from sklearn.pipeline import FeatureUnion
 from sklearn.feature_extraction import DictVectorizer
+from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.base import BaseEstimator, TransformerMixin
-
-
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import tree
+from classification import precision_recall
+from sklearn import svm
+from sklearn.svm import LinearSVC
+from sklearn.linear_model import SGDClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.feature_extraction.text import TfidfTransformer
+from sklearn.model_selection import train_test_split
+import pandas as pd
+from sklearn.decomposition.truncated_svd import TruncatedSVD
+from sklearn.linear_model import LogisticRegressionCV
 
 """ Prepare training and test data"""
 
@@ -37,7 +50,6 @@ def read_corpus():
 
 	
 	return statusAll,userinfo
-	
 
 """ Calculate data distribution
 	return list with userid wich scores for ext, agr all higher than 3, 
@@ -50,7 +62,7 @@ def calc(userinfo):
 	for i in userinfo:
 		if userinfo[i][6] == 'y':
 			tot = tot + 1
-		if float(userinfo[i][1]) > 3 and float(userinfo[i][3]) > 3:
+		if float(userinfo[i][1]) < 3 and float(userinfo[i][3]) < 3:
 			extagr = extagr + 1
 			d.append(i)
 		if userinfo[i][6] == 'n':
@@ -175,9 +187,9 @@ def prepare_data():
 	### calculate the distribution of dataset
 	d = calc(userinfo)
 	### split dataset into introversion and extraversion
-	labeld_data = splitdata(d, statusAll)
+	#labeld_data = splitdata(d, statusAll)
 	### Calculate status
-	calc_status(labeld_data)
+	#calc_status(labeld_data)
 	### split into training data and test data
 	#split_train_test(labeld_data)
 
@@ -188,17 +200,27 @@ def prepare_data():
 ###### dataset for nltk classifier
 def read_training_data_nltk():
 	training_set = []
+	bigr_set = []
+	tri_set = []
 	training_data = pickle.load(open('training.pickle','rb'))
 	count = 0
 	for lines in training_data:
-		count = count + 1
 		for line in lines[1][0]:
+			count = count + 1
 			feat = dict([(word, True) for word in line])
 			training_set.append((feat,lines[1][1]))
-		
+			bigr = list(nltk.bigrams(line))
+			bigr_feats = dict([(word[0] + ' ' + word[1], True) for word in bigr])
+			bigr_set.append((bigr_feats, lines[1][1]))
+			trigr = list(nltk.trigrams(line))
+			trigr_feats = dict([(word[0] + ' ' + word[1], True) for word in trigr])
+			tri_set.append((trigr_feats, lines[1][1]))
+			
+	
+
 	print("Total training data loaded: ",count)
 
-	return training_set
+	return training_set, bigr_set, tri_set
 	
 ## dataset for scikit
 def read_training_data_s():
@@ -207,25 +229,34 @@ def read_training_data_s():
 	training_data = pickle.load(open('training.pickle','rb'))
 	count = 0
 	data_with_labels = []
+	with_id = []
+	status, network = read_corpus()
 	for lines in training_data:
+		allstatus = []
 		for line in lines[1][0]:
 			count = count + 1
 			training_set.append(line)
 			labels.append(lines[1][1])
-			data_with_labels.append((line,lines[1][1]))
+			for word in line:
+				allstatus.append(word)
+			if lines[0] in network:
+				with_id.append((network[lines[0]][0],line,lines[1][1]))
+		data_with_labels.append((allstatus,lines[1][1]))
 			
 	print("Total training data loaded: ",count,"\n")
+	
+	return training_set, labels, data_with_labels, with_id
 
-	return training_set, labels, data_with_labels
 
 """ Dummy classifier as baseiline
-	Accuracy: 0.5487 """
+	Accuracy: 0.5487 with tokenized 0.9split
+	Accuracy: 0.43 0.75split"""
 def baseline(training_set, labels):
-	
+
 	# split corpus in train and test
 	X = np.array(training_set)
 	Y = np.array(labels)
-	split_point = int(0.75*len(X))
+	split_point = int(0.9*len(X))
 	Xtrain = X[:split_point]
 	Ytrain = Y[:split_point]
 	Xtest = X[split_point:]
@@ -247,13 +278,13 @@ def baseline(training_set, labels):
 			
 	print("Total tested in baseline                : ",len(Ytest))
 	print("Total extraversion predicted in baseline: ",c,"\n")
-	print("Accuracy baseline                       : ",accuracy_score(Ytest, guess),"\n")
+	print("Accuracy baseline                       : ",metrics.accuracy_score(Ytest, guess),"\n")
 	
 
 ###############################################################
 """ Extract linguistic features """ 
 """ Classes for features extraction """
-
+	
 class TextStats(BaseEstimator, TransformerMixin):
 	"""Extract features from each document for DictVectorizer"""
 
@@ -271,18 +302,19 @@ class PosNeg(BaseEstimator, TransformerMixin):
 		return self
 		
 	def transform(self, data):
-		score = []
+		features = np.recarray(shape=(len(data),),
+							   dtype=[('pos', object), ('neg', object)])
 		pos_wordlist, neg_wordlist = pos_neg_words()
 		for lines in data:
-			pos_s = 0
-			neg_s = 0
+			pos_s = []
+			neg_s = []
 			for word in lines:
 				if word in pos_wordlist:
-					pos_s += 1
-				elif word in neg_wordlist:
-					neg_s += 1
-			score.append({'pos':pos_s, 'neg': neg_s})
-		return score
+					features['pos'][lines] = word
+				if word in neg_wordlist:
+					features['neg'][lines] = word
+		print(features)
+		return features
 		
 
 class Pronouns(BaseEstimator, TransformerMixin):
@@ -292,26 +324,40 @@ class Pronouns(BaseEstimator, TransformerMixin):
 		
 	def transform(self, data):
 		score = []
+		punctuation = ['!','!!','!!!','^_^','<','3',':']
+		extra_wordlist = ['sang','hotel','kissed','shots','golden','dad','girls','restaurant','eve','best',
+					'proud','miss','soccer','met','brother','cheers', 'friends','tickets','concern','friday',
+					'aka','haha','drinks','Ryan','countless','bar','request','cats','football','checking','excitement',
+					'love','kidding','hot','spend','glory','sing','perfect','every','sweet','dance','summer','afternoon',
+					'exploring','finishing','early','evening','Reagan','visiting','year','spring','two','through','rest','gray',
+					'book','until','hug','blast','chips','greeted','minutes','rest','times','cup','beach','seconds','Olympic',
+					'following','dinner','participants','sharing','unusual','particular','lake','seemed','adventure','determined',
+					'activity','doctor','toys','infection','box','cherry','strength','require','providing','increased','health',
+					'conversation','ways','children','fewer','fascinating']
 		self_referencing = ['I', 'me', 'my']
 		social_ref = ['you','she','he', 'we','they','*PROPNAME*']
 		for lines in data:
-			self_s = 0
-			social_s = 0
+			self_s = []
+			social_s = []
 			for word in lines:
+				word = word.lower()
 				if word in self_referencing:
-					self_s += 1
+					self_s.append(word)
 				elif word in social_ref:
-					social_s += 1
+					social_s.append(word)
+				if word in punctuation:
+					social_s.append(word)
+				if word in extra_wordlist:
+					social_s.append(word)
 			score.append({'self':self_s, 'social':social_s})
 		
-		return score
-					
+		return score		
 		
 					
 		
 
 ################################################################
-
+""" Get list of positive and negative words"""
 def pos_neg_words():
 	pos_wordlist = []
 	neg_wordlist = []
@@ -324,62 +370,91 @@ def pos_neg_words():
 	
 	return pos_wordlist, neg_wordlist
 
+#####################################################################
 
+## Tutorial: http://www.ritchieng.com/machine-learning-multinomial-naive-bayes-vectorization/
 
-
+"""Scikit Classifiers """
 def classify(training_set,labels):
-	
+	tr = []
+	for i in training_set:
+		tr.append(' '.join(i))
+
+	pos_w, neg_w = pos_neg_words()
 	# split corpus in train and test
-	X = np.array(training_set)
-	Y = np.array(labels)
-	split_point = int(0.75*len(X))
-	Xtrain = X[:split_point]
-	Ytrain = Y[:split_point]
-	Xtest = X[split_point:]
-	Ytest = Y[split_point:]
-	print('Training set: ', len(Xtrain))
-	print('Test set: ', len(Xtest))
+	df = pd.DataFrame({'text':tr, 'label':labels})
+	X = df['text'].values
+	Y = df['label'].map({'extra':0,'intro':1})
+	X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.1, random_state=42)
+	vec = TfidfVectorizer(min_df=2,ngram_range=(1,4),smooth_idf=False)
+	
+	#X_other = load_your_other_features()
+	#X = scipy.sparse.hstack([X_tfidf, X_other)
+	
+	
 	# combine the vectorizer with a Naive Bayes classifier
-	classifier = Pipeline([
+	"""classifier = Pipeline([
 				('features', FeatureUnion([
 				('Textlength', Pipeline([
 				('stats', TextStats()),
 				('vect', DictVectorizer())
 				])),
 				('positive_negative', Pipeline([
-				('posneg', PosNeg()),
-				('vect', DictVectorizer())
+				('p_n', PosNeg()),
+				('tfidf',vec),
+				('tr',TfidfTransformer())
 				])),
-				('Pronouns', Pipeline([
-				('pronouns', Pronouns()),
-				('vect', DictVectorizer()),
-				]))
+				('pronouns', Pipeline([
+				('pron', Pronouns()),
+				('vec', vec),
+				('tr',TfidfTransformer())
 				])),
-				('cls', MultinomialNB())
-				])
-	# train the classifier
-	classifier.fit(Xtrain, Ytrain)
-	# test
-	Yguess = classifier.predict(Xtest)
-	
-	# evaluate
-	guess = []
-	for i in Xtest:
+				])),
+				('clf', MultinomialNB())
+				])"""
+	classifier = Pipeline( [('count',vec),
+					('tfidf',TfidfTransformer()),
+					('cls', MultinomialNB())] )
+				
+	#classifier = MultinomialNB()
+	classifier.fit(X_train,y_train)
+	predict = classifier.predict(X_test)
+	print(metrics.accuracy_score(y_test, predict))
+	print(metrics.confusion_matrix(y_test, predict))
+# combine the vectorizer with a Naive Bayes classifier
+	#classifier = Pipeline( [('vec', TfidfTransformer()),
+	#					('cls', tree.DecisionTreeClassifier())] )"""
+	"""guess = []
+	for i in x_test:
 		Yguess = classifier.predict([i])
 		guess.append(Yguess)
 		
 	# evaluate
-	c = 0
+	extra = 0
+	intro = 0
 	for i in guess:
 		if i == ['extra']:
-			c += 1
+			extra += 1
+		else:
+			intro += 1
+			
 			
 	print("Total tested                : ",len(Ytest))
-	print("Total extraversion predicted: ",c,"\n")
-	print("Accuracy                    : ",accuracy_score(Ytest, guess),"\n")
+	print("Total extraversion predicted: ",extra)
+	print("Total introversion predicted: ",intro,"\n")
+	print("Accuracy                    : ",accuracy_score(y_test, guess),"\n")"""
+
+
+##############################################################################
+"""Nltk classifiers"""
+
+def bag_of_words(words):
+	'''
+	>>> bag_of_words(['the', 'quick', 'brown', 'fox'])
+	{'quick': True, 'brown': True, 'the': True, 'fox': True}
+	'''
+	return dict([(word, True) for word in words])
 	
-
-
 """ Split data in training and development set randomly """
 def split_train_dev(data_with_labels,split=0.9):
 	train_feats = []
@@ -394,22 +469,98 @@ def split_train_dev(data_with_labels,split=0.9):
 	print("  Develop set: %i" % len(test_feats))
 	return train_feats, test_feats
 
-## Main program
-def main():
-	score = ['extra','intro']
+def get_info(train_feats):
+	c  = 0
+	intro = 0
+	pos_wordlist, neg_wordlist = pos_neg_words()
+	self_ref = ['I', 'me', 'my']
+	social_ref = ['you','she','he', 'we','they','*PROPNAME*']
+	punctuation = ['!','!!','!!!','^_^','<','3',':']
+	extra_wordlist = ['sang','hotel','kissed','shots','golden','dad','girls','restaurant','eve','best',
+					'proud','miss','soccer','met','brother','cheers', 'friends','tickets','concern','friday',
+					'aka','haha','drinks','Ryan','countless','bar','request','cats','football','checking','excitement',
+					'love','kidding','hot','spend','glory','sing','perfect','every','sweet','dance','summer','afternoon',
+					'exploring','finishing','early','evening','Reagan','visiting','year','spring','two','through','rest','gray',
+					'book','until','hug','blast','chips','greeted','minutes','rest','times','cup','beach','seconds','Olympic',
+					'following','dinner','participants','sharing','unusual','particular','lake','seemed','adventure','determined',
+					'activity','doctor','toys','infection','box','cherry','strength','require','providing','increased','health',
+					'conversation','ways','children','fewer','fascinating']
+	for statuses in train_feats:
+		for status in statuses:
+			status = dict([(word, False) for word in status])
+			for word in status:
+				word = word.lower()
+				if word in pos_wordlist or word in neg_wordlist:
+					status[word] = True
+				if word in self_ref or word in social_ref:
+					status[word] = True
+				if word in extra_wordlist:
+					status[word] = True
+				if word in punctuation:
+					status[word] = True
+				#if word in pos_wordlist and statuses[1] == 'extra':
+				#	c += 1
+				#if word in neg_wordlist and statuses[1] == 'intro':
+				#	intro += 1
+					
+	print(c, intro)
+	return train_feats
 	
-	training_set,labels, data_with_labels = read_training_data_s()
+
+def train(train_feats):
+	classifier = nltk.classify.NaiveBayesClassifier.train(train_feats)
+	#classifier = nltk.classify.SklearnClassifier(LinearSVC()).train(train_feats)
+	#classifier = nltk.classify.DecisionTreeClassifier.train(train_feats, binary=True, entropy_cutoff=0.8, depth_cutoff=5, support_cutoff=300)
+	return classifier
+
+# prints accuracy, precision and recall, f-score
+def evaluation(classifier, test_feats, score):
+	print ("\n##### Evaluation...")
+	print("  Accuracy: %f" % nltk.classify.accuracy(classifier, test_feats))
+
+def split_label(data_with_labels):
+	tr_set = []
+	labels_set = []
+	for i in data_with_labels:
+		tr_set.append(i[0])
+		labels_set.append(i[1])
+		
+	return tr_set, labels_set
+
+			
+## Main program
+def Scikit_classify():
+	score = ['extra','intro']
+
+	training_set,labels, data_with_labels, with_id = read_training_data_s()
 	### Calculate baseline
 	#baseline(training_set,labels)
 	
-	#train_feats,test_feats = split_train_dev(data_with_labels)
+	#train_set, labels = split_label(data_with_labels)
+	
+	####### Scikit ##############
 	classify(training_set,labels)
 	
-	#classifier = train(train_feats)
-	#evaluation(classifier,test_feats,score)
+
+def nltk_classify():
+	score = ['extra','intro']
+	#######  NLTK  ##############
+	acc = []
+	dataset, bigr_set, tri_set = read_training_data_nltk()
+	for N in range(5):
+		train_feats,test_feats = split_train_dev(bigr_set)
+		train_info = get_info(train_feats)
+		classifier = train(train_info)
+		#evaluation(classifier,test_feats,score)
+		accuracy = nltk.classify.accuracy(classifier, test_feats)
+		print(accuracy)
+		acc.append(accuracy)
+	average = sum(acc) / len(acc)
+	print('Accuracy after N-fold cross validation: ',average)
 	
 
-
+### nltk bayes without features: 0.649
 if __name__ == "__main__":
-	main()
+	Scikit_classify()
+	#nltk_classify()
 	#prepare_data()
