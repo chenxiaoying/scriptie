@@ -29,6 +29,9 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 from sklearn.decomposition.truncated_svd import TruncatedSVD
 from sklearn.linear_model import LogisticRegressionCV
+from scipy.sparse import hstack
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.preprocessing import Imputer
 
 """ Prepare training and test data"""
 
@@ -292,8 +295,8 @@ class TextStats(BaseEstimator, TransformerMixin):
 		return self
 
 	def transform(self, posts):
-		return [{'length': len(text),
-				 'num_sentences': text.count('.')}
+		return [{'length': len(text.split()),
+				 'word_length': np.mean([len(word) for word in text.split()])}
 				for text in posts]
 
 class PosNeg(BaseEstimator, TransformerMixin):
@@ -302,8 +305,6 @@ class PosNeg(BaseEstimator, TransformerMixin):
 		return self
 		
 	def transform(self, data):
-		features = np.recarray(shape=(len(data),),
-							   dtype=[('pos', object), ('neg', object)])
 		pos_wordlist, neg_wordlist = pos_neg_words()
 		for lines in data:
 			pos_s = []
@@ -313,7 +314,6 @@ class PosNeg(BaseEstimator, TransformerMixin):
 					features['pos'][lines] = word
 				if word in neg_wordlist:
 					features['neg'][lines] = word
-		print(features)
 		return features
 		
 
@@ -370,28 +370,114 @@ def pos_neg_words():
 	
 	return pos_wordlist, neg_wordlist
 
+def pos_neg(training_set):
+	pos_wordlist, neg_wordlist = pos_neg_words()
+	features = []
+	punctuation = ['!','!!','!!!','^_^','<','3',':']
+	extra_wordlist = ['sang','hotel','kissed','shots','golden','dad','girls','restaurant','eve','best',
+					'proud','miss','soccer','met','brother','cheers', 'friends','tickets','concern','friday',
+					'aka','haha','drinks','Ryan','countless','bar','request','cats','football','checking','excitement',
+					'love','kidding','hot','spend','glory','sing','perfect','every','sweet','dance','summer','afternoon',
+					'exploring','finishing','early','evening','Reagan','visiting','year','spring','two','through','rest','gray',
+					'book','until','hug','blast','chips','greeted','minutes','rest','times','cup','beach','seconds','Olympic',
+					'following','dinner','participants','sharing','unusual','particular','lake','seemed','adventure','determined',
+					'activity','doctor','toys','infection','box','cherry','strength','require','providing','increased','health',
+					'conversation','ways','children','fewer','fascinating']
+	self_referencing = ['I', 'me', 'my']
+	social_ref = ['you','she','he', 'we','they','*PROPNAME*']
+	for lines in training_set:
+		info_f = []
+		for word in lines:
+			if word in pos_wordlist or word in neg_wordlist:
+				info_f.append(word)
+			elif word in punctuation or word in extra_wordlist:
+				info_f.append(word)
+			elif word in self_referencing or word in social_ref:
+				info_f.append(word)
+		features.append(' '.join(info_f))
+		
+	return features
+		
+
+def network_prop(training_set, with_id):
+	net_size = []
+	betw = []
+	norm_betw = []
+	brok = []
+	norm_brok = []
+	status = []
+	label = []
+	length = []
+	features = pos_neg(training_set)
+	for lines in with_id:
+		length.append(len(lines[1]))
+		net_size.append(lines[0][0])
+		betw.append(lines[0][1])
+		norm_betw.append(lines[0][2])
+		brok.append(lines[0][3])
+		norm_brok.append(lines[0][4])
+		status.append(' '.join(lines[1]))
+		label.append(lines[2])
+	print(sum(length)/len(length))
+	print(sum(length))
+	l_10 = []
+	l_20 = []
+	l_30 = []
+	l_40 = []
+	l_50 = []
+	l = []
+	for i in length:
+		if i <= 10:
+			l_10.append(i)
+		elif 10 < i <= 20:
+			l_20.append(i)
+		elif 20 < i <= 30:
+			l_30.append(i)
+		elif 30 < i <= 40:
+			l_40.append(i)
+		elif 40 < i <= 50:
+			l_50.append(i)
+		else:
+			l.append(i)
+	print(len(l_10),len(l_20),len(l_30),len(l_40),len(l_50),len(l))
+	data = pd.DataFrame({'text':status,'label':label, 'features':features, 'netw_size':net_size,'betw':betw,
+						'norm_betw':norm_betw,'brok':brok,'norm_brok':norm_brok})
+	return data
+		
+
 #####################################################################
 
 ## Tutorial: http://www.ritchieng.com/machine-learning-multinomial-naive-bayes-vectorization/
 
+### http://weslack.com/question/1854200000002145488
 """Scikit Classifiers """
-def classify(training_set,labels):
-	tr = []
+def classify(df):
+	"""tr = []
 	for i in training_set:
-		tr.append(' '.join(i))
+		tr.append(' '.join(i))"""
 
-	pos_w, neg_w = pos_neg_words()
 	# split corpus in train and test
-	df = pd.DataFrame({'text':tr, 'label':labels})
+	#df = pd.DataFrame({'text':tr, 'label':labels})
 	X = df['text'].values
 	Y = df['label'].map({'extra':0,'intro':1})
-	X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.1, random_state=42)
-	vec = TfidfVectorizer(min_df=2,ngram_range=(1,4),smooth_idf=False)
+	netw_size = df['netw_size'].values
+	X_train, X_test, y_train, y_test = train_test_split(df[['text','norm_betw','netw_size']], Y, test_size=0.1, random_state=42)
+	vec = TfidfVectorizer(min_df=1,ngram_range=(1,4),smooth_idf=False)
+
 	
-	#X_other = load_your_other_features()
-	#X = scipy.sparse.hstack([X_tfidf, X_other)
-	
-	
+	transformer = FeatureUnion([('statn', Pipeline([
+								('s_text', FunctionTransformer(lambda x: x['text'], validate=False)),
+								('vec',vec)
+								])),
+								('stat', Pipeline([
+								('s_netw', FunctionTransformer(lambda x: x['features'], validate=False)),
+								('vec',vec)
+								]))
+								])
+	transformer.fit(X_train)
+	tr = transformer.transform(Xtrain).toarray()
+	#print(tr)"""
+	#X_train, X_test, y_train, y_test = train_test_split(tr, Y, test_size=0.1, random_state=42)
 	# combine the vectorizer with a Naive Bayes classifier
 	"""classifier = Pipeline([
 				('features', FeatureUnion([
@@ -399,51 +485,51 @@ def classify(training_set,labels):
 				('stats', TextStats()),
 				('vect', DictVectorizer())
 				])),
-				('positive_negative', Pipeline([
-				('p_n', PosNeg()),
-				('tfidf',vec),
-				('tr',TfidfTransformer())
-				])),
-				('pronouns', Pipeline([
-				('pron', Pronouns()),
-				('vec', vec),
-				('tr',TfidfTransformer())
+				('vect',Pipeline([
+				('vec',vec),
+				('tf', TfidfTransformer())
 				])),
 				])),
-				('clf', MultinomialNB())
+				('clf', B())
 				])"""
-	classifier = Pipeline( [('count',vec),
-					('tfidf',TfidfTransformer()),
-					('cls', MultinomialNB())] )
-				
+
+	classifier = Pipeline([
+					('tran',transformer),
+					('cls', MultinomialNB())
+					])
+
 	#classifier = MultinomialNB()
 	classifier.fit(X_train,y_train)
+	print(y_train)
+	print(X_test)
 	predict = classifier.predict(X_test)
 	print(metrics.accuracy_score(y_test, predict))
 	print(metrics.confusion_matrix(y_test, predict))
+	labell = ['extra','intro']
+	print(metrics.classification_report(y_test,predict, target_names=labell))
 # combine the vectorizer with a Naive Bayes classifier
 	#classifier = Pipeline( [('vec', TfidfTransformer()),
 	#					('cls', tree.DecisionTreeClassifier())] )"""
 	"""guess = []
 	for i in x_test:
 		Yguess = classifier.predict([i])
-		guess.append(Yguess)
+		guess.append(Yguess)"""
 		
-	# evaluate
+	"""# evaluate
 	extra = 0
 	intro = 0
-	for i in guess:
-		if i == ['extra']:
+	for i in predict:
+		if i == 0:
 			extra += 1
 		else:
 			intro += 1
 			
 			
-	print("Total tested                : ",len(Ytest))
+	print("Total tested                : ",len(y_test))
 	print("Total extraversion predicted: ",extra)
 	print("Total introversion predicted: ",intro,"\n")
-	print("Accuracy                    : ",accuracy_score(y_test, guess),"\n")"""
-
+	print("Accuracy                    : ",metrics.accuracy_score(y_test, predict),"\n")
+	"""
 
 ##############################################################################
 """Nltk classifiers"""
@@ -536,10 +622,12 @@ def Scikit_classify():
 	### Calculate baseline
 	#baseline(training_set,labels)
 	
+	### Get network properties
+	dataset = network_prop(training_set, with_id)
 	#train_set, labels = split_label(data_with_labels)
 	
 	####### Scikit ##############
-	classify(training_set,labels)
+	classify(dataset)
 	
 
 def nltk_classify():
