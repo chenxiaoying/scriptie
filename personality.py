@@ -411,11 +411,11 @@ def network_prop(training_set, with_id):
 	features = pos_neg(training_set)
 	for lines in with_id:
 		length.append(len(lines[1]))
-		net_size.append(lines[0][0])
-		betw.append(lines[0][1])
-		norm_betw.append(lines[0][2])
-		brok.append(lines[0][3])
-		norm_brok.append(lines[0][4])
+		net_size.append(int(lines[0][0]))
+		betw.append(float(lines[0][1]))
+		norm_betw.append(float(lines[0][2]))
+		brok.append(int(lines[0][3]))
+		norm_brok.append(float(lines[0][4]))
 		status.append(' '.join(lines[1]))
 		label.append(lines[2])
 	print(sum(length)/len(length))
@@ -442,6 +442,7 @@ def network_prop(training_set, with_id):
 	print(len(l_10),len(l_20),len(l_30),len(l_40),len(l_50),len(l))
 	data = pd.DataFrame({'text':status,'label':label, 'features':features, 'netw_size':net_size,'betw':betw,
 						'norm_betw':norm_betw,'brok':brok,'norm_brok':norm_brok})
+
 	return data
 		
 
@@ -449,6 +450,12 @@ def network_prop(training_set, with_id):
 
 ## Tutorial: http://www.ritchieng.com/machine-learning-multinomial-naive-bayes-vectorization/
 
+class ArrayCaster(BaseEstimator, TransformerMixin):
+  def fit(self, x, y=None):
+    return self
+
+  def transform(self, data):
+    return np.array(data)
 ### http://weslack.com/question/1854200000002145488
 """Scikit Classifiers """
 def classify(df):
@@ -461,21 +468,22 @@ def classify(df):
 	X = df['text'].values
 	Y = df['label'].map({'extra':0,'intro':1})
 	netw_size = df['netw_size'].values
-	X_train, X_test, y_train, y_test = train_test_split(df[['text','norm_betw','netw_size']], Y, test_size=0.1, random_state=42)
-	vec = TfidfVectorizer(min_df=1,ngram_range=(1,4),smooth_idf=False)
+	X_train, X_test, y_train, y_test = train_test_split(df[['text','features','norm_betw','netw_size']], Y, test_size=0.1, random_state=42)
+	vec = TfidfVectorizer()
 
 	
 	transformer = FeatureUnion([('statn', Pipeline([
 								('s_text', FunctionTransformer(lambda x: x['text'], validate=False)),
-								('vec',vec)
+								('vec',vec),
+								('tf',TfidfTransformer())
 								])),
 								('stat', Pipeline([
 								('s_netw', FunctionTransformer(lambda x: x['features'], validate=False)),
-								('vec',vec)
+								('vec',CountVectorizer())
 								]))
 								])
 	transformer.fit(X_train)
-	tr = transformer.transform(Xtrain).toarray()
+	tr = transformer.transform(X_train).toarray()
 	#print(tr)"""
 	#X_train, X_test, y_train, y_test = train_test_split(tr, Y, test_size=0.1, random_state=42)
 	# combine the vectorizer with a Naive Bayes classifier
@@ -495,7 +503,7 @@ def classify(df):
 
 	classifier = Pipeline([
 					('tran',transformer),
-					('cls', MultinomialNB())
+					('cls', RandomForestClassifier())
 					])
 
 	#classifier = MultinomialNB()

@@ -16,28 +16,53 @@ from sklearn_pandas import DataFrameMapper, cross_val_score
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import FunctionTransformer
 from sklearn.pipeline import FeatureUnion
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.feature_extraction import DictVectorizer
+from sklearn.multiclass import OneVsRestClassifier
+from sklearn.preprocessing import Imputer
+from sklearn.feature_selection import SelectKBest
+from sklearn.linear_model import LogisticRegressionCV
 
 from personality import read_corpus, network_prop, read_training_data_s, pos_neg
 
+class TextStats(BaseEstimator, TransformerMixin):
+	"""Extract features from each document for DictVectorizer"""
+
+	def fit(self, x, y=None):
+		return self
+
+	def transform(self, posts):
+		return posts
+		
+
 def classify(dataset):
 	X = dataset['text'].values
+	colum = ['text','label','features']
+	cols = [col for col in dataset if col not in colum]
+	featur = dataset.ix[:,cols]
+	fe = featur.to_dict('records')
+	data = dataset[['text','features','netw_size','betw','norm_betw','brok','norm_brok']]
+	dictt = DictVectorizer()
+	featre = dictt.fit_transform(fe)
 	y = dataset['label'].map({'extra':0,'intro':1})
-	X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33, random_state=42)
+	X_train, X_test, y_train, y_test = train_test_split(data, y, test_size=0.33, random_state=2)
 	vec = TfidfVectorizer(min_df=1,ngram_range=(1,4),smooth_idf=False)
-	#cc = c.fit_transform(X_train)
-	#ccc = c.transform(X_test)
+	#f = np.hstack((dataset['netw_size'],dataset['betw']))
+	#tt = dataset['text'].values
 	classifier = Pipeline([
-					('features', FeatureUnion([
-					('text_pipe', Pipeline([
-					('vec',vec),
-					('tf', TfidfTransformer())
-					])),
-					('netw',Pipeline([
-					('s_text', FunctionTransformer(dataset['netw_size'], validate=False))
-					]))
-					])),
-					('cls',MultinomialNB())
-					])
+				('features', FeatureUnion([
+				('textt',Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('vec',vec),
+				('tf', TfidfTransformer())
+				])),
+				('text',Pipeline([
+				('sele', FunctionTransformer(lambda x: x[['netw_size','betw']], validate=False)),
+				('imp',Imputer())
+				])),
+				])),
+				('clf', MultinomialNB())
+				])
 	classifier.fit(X_train,y_train)
 	predict = classifier.predict(X_test)
 	print('accuracy: ',metrics.accuracy_score(y_test, predict))
@@ -58,7 +83,7 @@ def classifying(dataset):
 	data = mapper.fit_transform(dataset)
 	pipe = Pipeline([
 			('features',data),
-			('cls', MultinomialNB())
+			('cls', LogisticRegressionCV())
 			])
 	print(cross_val_score(pipe, y_test, X_test))
 	
