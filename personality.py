@@ -14,7 +14,6 @@ import numpy as np
 from sklearn import metrics
 from sklearn.pipeline import FeatureUnion
 from sklearn.feature_extraction import DictVectorizer
-from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import tree
@@ -27,11 +26,9 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_extraction.text import TfidfTransformer
 from sklearn.model_selection import train_test_split
 import pandas as pd
-from sklearn.decomposition.truncated_svd import TruncatedSVD
 from sklearn.linear_model import LogisticRegressionCV
 from scipy.sparse import hstack
 from sklearn.preprocessing import FunctionTransformer
-from sklearn.preprocessing import Imputer
 
 """ Prepare training and test data"""
 
@@ -400,14 +397,7 @@ def pos_neg(training_set):
 		
 
 def network_prop(training_set, with_id):
-	net_size = []
-	betw = []
-	norm_betw = []
-	brok = []
-	norm_brok = []
-	status = []
-	label = []
-	length = []
+	net_size, betw, norm_betw, brok, norm_brok, status, label, length = [], [], [], [], [], [], [], []
 	features = pos_neg(training_set)
 	for lines in with_id:
 		length.append(len(lines[1]))
@@ -418,14 +408,9 @@ def network_prop(training_set, with_id):
 		norm_brok.append(float(lines[0][4]))
 		status.append(' '.join(lines[1]))
 		label.append(lines[2])
-	print(sum(length)/len(length))
-	print(sum(length))
-	l_10 = []
-	l_20 = []
-	l_30 = []
-	l_40 = []
-	l_50 = []
-	l = []
+	print('Average per status :',sum(length)/len(length))
+	print('Totaal woorden :',sum(length))
+	l_10, l_20, l_30, l_40, l_50, l = [], [],[],[],[],[]
 	for i in length:
 		if i <= 10:
 			l_10.append(i)
@@ -439,7 +424,7 @@ def network_prop(training_set, with_id):
 			l_50.append(i)
 		else:
 			l.append(i)
-	print(len(l_10),len(l_20),len(l_30),len(l_40),len(l_50),len(l))
+	#print(len(l_10),len(l_20),len(l_30),len(l_40),len(l_50),len(l))
 	data = pd.DataFrame({'text':status,'label':label, 'features':features, 'netw_size':net_size,'betw':betw,
 						'norm_betw':norm_betw,'brok':brok,'norm_brok':norm_brok})
 
@@ -456,15 +441,11 @@ class ArrayCaster(BaseEstimator, TransformerMixin):
 
   def transform(self, data):
     return np.array(data)
+    
+    
 ### http://weslack.com/question/1854200000002145488
 """Scikit Classifiers """
 def classify(df):
-	"""tr = []
-	for i in training_set:
-		tr.append(' '.join(i))"""
-
-	# split corpus in train and test
-	#df = pd.DataFrame({'text':tr, 'label':labels})
 	X = df['text'].values
 	Y = df['label'].map({'extra':0,'intro':1})
 	netw_size = df['netw_size'].values
@@ -515,29 +496,6 @@ def classify(df):
 	print(metrics.confusion_matrix(y_test, predict))
 	labell = ['extra','intro']
 	print(metrics.classification_report(y_test,predict, target_names=labell))
-# combine the vectorizer with a Naive Bayes classifier
-	#classifier = Pipeline( [('vec', TfidfTransformer()),
-	#					('cls', tree.DecisionTreeClassifier())] )"""
-	"""guess = []
-	for i in x_test:
-		Yguess = classifier.predict([i])
-		guess.append(Yguess)"""
-		
-	"""# evaluate
-	extra = 0
-	intro = 0
-	for i in predict:
-		if i == 0:
-			extra += 1
-		else:
-			intro += 1
-			
-			
-	print("Total tested                : ",len(y_test))
-	print("Total extraversion predicted: ",extra)
-	print("Total introversion predicted: ",intro,"\n")
-	print("Accuracy                    : ",metrics.accuracy_score(y_test, predict),"\n")
-	"""
 
 ##############################################################################
 """Nltk classifiers"""
