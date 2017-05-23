@@ -19,7 +19,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn import tree
 from classification import precision_recall
 from sklearn import svm
-from sklearn.svm import LinearSVC
+from sklearn.svm import LinearSVC, LinearSVR
 from sklearn.linear_model import SGDClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestRegressor
@@ -28,7 +28,9 @@ from sklearn.model_selection import train_test_split
 import pandas as pd
 from sklearn.linear_model import LogisticRegressionCV
 from scipy.sparse import hstack
-from sklearn.preprocessing import FunctionTransformer
+from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
+from afinn import Afinn
+from sklearn.ensemble import AdaBoostClassifier
 
 """ Prepare training and test data"""
 
@@ -247,7 +249,24 @@ def read_training_data_s():
 	
 	return training_set, labels, data_with_labels, with_id
 
-
+def read_test_data_s():
+	test_set = []
+	test_data = pickle.load(open('test.pickle','rb'))
+	count = 0
+	with_id = []
+	status, network = read_corpus()
+	for lines in test_data:
+		for line in lines[1][0]:
+			count = count + 1
+			test_set.append(line)
+			if lines[0] in network:
+				with_id.append((network[lines[0]][0],line,lines[1][1]))
+			
+	print("Total test data loaded: ",count,"\n")
+	
+	return test_set, with_id
+	
+	
 """ Dummy classifier as baseiline
 	Accuracy: 0.5487 with tokenized 0.9split
 	Accuracy: 0.43 0.75split"""
@@ -296,32 +315,158 @@ class TextStats(BaseEstimator, TransformerMixin):
 				 'word_length': np.mean([len(word) for word in text.split()])}
 				for text in posts]
 
+def features(sentence, index):
+	pos_wordlist, neg_wordlist = pos_neg_words()
+	sentence[index] = sentence[index].lower()
+	""" sentence: [w1, w2, ...], index: the index of the word """
+	return {
+		'is_pos': sentence[index] in pos_wordlist,
+		'is_neg': sentence[index] in neg_wordlist}
+		
 class PosNeg(BaseEstimator, TransformerMixin):
 	
 	def fit(self, x, y=None):
 		return self
 		
 	def transform(self, data):
-		pos_wordlist, neg_wordlist = pos_neg_words()
+		feat = []
 		for lines in data:
-			pos_s = []
-			neg_s = []
-			for word in lines:
-				if word in pos_wordlist:
-					features['pos'][lines] = word
-				if word in neg_wordlist:
-					features['neg'][lines] = word
-		return features
+			feature = []
+			line = nltk.word_tokenize(lines)
+			for index in range(len(line)):
+				feature.append(features(line, index))
+			pos = 0
+			neg = 0
+			for diction in feature:
+				if diction['is_pos'] == True:
+					pos += 1
+				if diction['is_neg'] == True:
+					neg += 1
+			if pos != 0 and neg != 0:
+				feat.append({'is_pos':True, 'is_neg': True, 'pos_n': pos, 'neg_n':neg})
+			elif pos != 0 and neg == 0:
+				feat.append({'is_pos':True, 'is_neg': False, 'pos_n': pos, 'neg_n':neg})
+			elif pos == 0 and neg != 0:
+				feat.append({'is_pos':False, 'is_neg': True, 'pos_n': pos, 'neg_n':neg})
+			else:
+				feat.append({'is_pos':False, 'is_neg': False, 'pos_n': pos, 'neg_n':neg})	
 		
-
-class Pronouns(BaseEstimator, TransformerMixin):
+		return feat
+		
+class Punt(BaseEstimator, TransformerMixin):
 	
 	def fit(self, x, y=None):
 		return self
 		
 	def transform(self, data):
 		score = []
-		punctuation = ['!','!!','!!!','^_^','<','3',':']
+		punctuation = ['.','!','^_^','<','3',':']
+		for lines in data:
+			punt = 0
+			for word in lines:
+				if word in punctuation:
+					punt += 1
+			score.append({'punt':punt})
+		
+		return score
+
+class Adj(BaseEstimator, TransformerMixin):
+	
+	def fit(self, x, y=None):
+		return self
+		
+	def transform(self, data):
+		score = []
+		for lines in data:
+			line = nltk.pos_tag(nltk.word_tokenize(lines))
+			adjec, verb, nn, pro = 0, 0, 0, 0
+			for word in line:
+				if word[1] == 'JJ':
+					adjec += 1
+				elif 'VB' in word[1]:
+					verb += 1
+				elif 'NN' in word[1]:
+					nn += 1
+				elif 'PRP' in word[1]:
+					pro += 1
+			score.append({'ajec':adjec, 'verb':verb, 'noun':nn, 'prop':pro})
+		
+		return score
+
+
+class Afi(BaseEstimator, TransformerMixin):
+	
+	def fit(self, x, y=None):
+		return self
+		
+	def transform(self, data):
+		sco = []
+		for lines in data:
+			afinn = Afinn(emoticons=True)
+			sc = afinn.score(lines)
+			sco.append({'afinn':sc})
+		
+		return sco
+		
+
+def h4_list():
+	h4 = open('inqdict.txt','r')
+	h4l = {}
+	for lines in h4:
+		line = lines.split()
+		word = line[0].lower()
+		if '#' in word:
+			word = word.split('#')[0]
+		try:
+			h4l[word].append(line[1:])
+		except KeyError:
+			h4l[word] = [line[1:]]
+	
+	for i in h4l:
+		new_l = []
+		for li in h4l[i]:
+			if type(li) is list:
+				new_l += li
+			else:
+				print(li)
+				new_l = h4l[i]
+		h4l[i] = new_l
+
+	return h4l
+
+class H4Lvd(BaseEstimator, TransformerMixin):
+	
+	def fit(self, x, y=None):
+		return self
+		
+	def transform(self, data):
+		sco = []
+		h_list = h4_list()
+		for lines in data:
+			line = nltk.word_tokenize(lines)
+			for word in line:
+				pos, neg, nn, ad = 0,0,0,0
+				word = word.lower()
+				if word in h_list:
+					if 'Neg' in h_list[word]:
+						neg += 1
+					elif 'Pos' in h_list[word]:
+						pos += 1
+					elif 'Noun' in h_list[word] or 'noun' in h_list[word]:
+						nn += 1
+					elif 'adj' in h_list[word]:
+						ad += 1
+			sco.append({'ajec':ad, 'pos':pos, 'noun':nn, 'neg':neg})
+						
+		return sco
+		
+class ExtraWord(BaseEstimator, TransformerMixin):
+	
+	def fit(self, x, y=None):
+		return self
+		
+	def transform(self, data):
+		score = []
 		extra_wordlist = ['sang','hotel','kissed','shots','golden','dad','girls','restaurant','eve','best',
 					'proud','miss','soccer','met','brother','cheers', 'friends','tickets','concern','friday',
 					'aka','haha','drinks','Ryan','countless','bar','request','cats','football','checking','excitement',
@@ -331,21 +476,36 @@ class Pronouns(BaseEstimator, TransformerMixin):
 					'following','dinner','participants','sharing','unusual','particular','lake','seemed','adventure','determined',
 					'activity','doctor','toys','infection','box','cherry','strength','require','providing','increased','health',
 					'conversation','ways','children','fewer','fascinating']
-		self_referencing = ['I', 'me', 'my']
-		social_ref = ['you','she','he', 'we','they','*PROPNAME*']
 		for lines in data:
-			self_s = []
-			social_s = []
-			for word in lines:
+			line = nltk.word_tokenize(lines)
+			extra = 0
+			for word in line:
+				word = word.lower()
+				if word in extra_wordlist:
+					extra += 1
+			score.append({'extra':extra})
+		
+		return score
+		
+class Pronouns(BaseEstimator, TransformerMixin):
+	
+	def fit(self, x, y=None):
+		return self
+		
+	def transform(self, data):
+		score = []
+		self_referencing = ['I', 'me', 'my','mine']
+		social_ref = ['you','she','he', 'we','they','*PROPNAME*','them','his','her','your','anyone','our','everyone']
+		for lines in data:
+			self_s = 0
+			social_s = 0
+			line = nltk.word_tokenize(lines)
+			for word in line:
 				word = word.lower()
 				if word in self_referencing:
-					self_s.append(word)
+					self_s += 1
 				elif word in social_ref:
-					social_s.append(word)
-				if word in punctuation:
-					social_s.append(word)
-				if word in extra_wordlist:
-					social_s.append(word)
+					social_s += 1
 			score.append({'self':self_s, 'social':social_s})
 		
 		return score		
@@ -424,7 +584,11 @@ def network_prop(training_set, with_id):
 			l_50.append(i)
 		else:
 			l.append(i)
-	#print(len(l_10),len(l_20),len(l_30),len(l_40),len(l_50),len(l))
+	
+	"""print(max(betw))
+	print(max(brok))
+	print(max(length))
+	print(len(l_10),len(l_20),len(l_30),len(l_40),len(l_50),len(l))"""
 	data = pd.DataFrame({'text':status,'label':label, 'features':features, 'netw_size':net_size,'betw':betw,
 						'norm_betw':norm_betw,'brok':brok,'norm_brok':norm_brok})
 
@@ -440,7 +604,7 @@ class ArrayCaster(BaseEstimator, TransformerMixin):
     return self
 
   def transform(self, data):
-    return np.array(data)
+    return np.transpose(np.matrix(data))
     
     
 ### http://weslack.com/question/1854200000002145488
@@ -448,49 +612,29 @@ class ArrayCaster(BaseEstimator, TransformerMixin):
 def classify(df):
 	X = df['text'].values
 	Y = df['label'].map({'extra':0,'intro':1})
-	netw_size = df['netw_size'].values
-	X_train, X_test, y_train, y_test = train_test_split(df[['text','features','norm_betw','netw_size']], Y, test_size=0.1, random_state=42)
-	vec = TfidfVectorizer()
-
-	
-	transformer = FeatureUnion([('statn', Pipeline([
-								('s_text', FunctionTransformer(lambda x: x['text'], validate=False)),
-								('vec',vec),
-								('tf',TfidfTransformer())
-								])),
-								('stat', Pipeline([
-								('s_netw', FunctionTransformer(lambda x: x['features'], validate=False)),
-								('vec',CountVectorizer())
-								]))
-								])
-	transformer.fit(X_train)
-	tr = transformer.transform(X_train).toarray()
-	#print(tr)"""
-	#X_train, X_test, y_train, y_test = train_test_split(tr, Y, test_size=0.1, random_state=42)
-	# combine the vectorizer with a Naive Bayes classifier
-	"""classifier = Pipeline([
+	X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.1, random_state=42)
+	vec = TfidfVectorizer(min_df=1,ngram_range=(1,4),smooth_idf=False)
+	print('Start Classifier.....')
+	classifier = Pipeline([
 				('features', FeatureUnion([
-				('Textlength', Pipeline([
-				('stats', TextStats()),
-				('vect', DictVectorizer())
+				('ADJ', Pipeline([
+				('stats',Afi()),
+				('ar', DictVectorizer())
+				])),
+				('pr', Pipeline([
+				('stats',Punt()),
+				('ar', DictVectorizer())
 				])),
 				('vect',Pipeline([
 				('vec',vec),
 				('tf', TfidfTransformer())
 				])),
 				])),
-				('clf', B())
-				])"""
-
-	classifier = Pipeline([
-					('tran',transformer),
-					('cls', RandomForestClassifier())
-					])
+				('clf', AdaBoostClassifier())
+				])
 
 	#classifier = MultinomialNB()
 	classifier.fit(X_train,y_train)
-	print(y_train)
-	print(X_test)
 	predict = classifier.predict(X_test)
 	print(metrics.accuracy_score(y_test, predict))
 	print(metrics.confusion_matrix(y_test, predict))
