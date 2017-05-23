@@ -23,7 +23,9 @@ from sklearn.svm import LinearSVC
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn import tree
+from sklearn.naive_bayes import GaussianNB
 
+from sklearn.model_selection import cross_val_score
 from personality import read_corpus, network_prop, read_training_data_s, pos_neg_words
 from personality import PosNeg, TextStats, Pronouns, Punt, ExtraWord, Adj, Afi, H4Lvd
 
@@ -38,43 +40,6 @@ from personality import read_test_data_s
 
 from nltk import word_tokenize, pos_tag
 
-
-def features(sentence, index):
-	pos_wordlist, neg_wordlist = pos_neg_words()
-	""" sentence: [w1, w2, ...], index: the index of the word """
-	return {
-		'word': sentence[index],
-		'is_all_caps': sentence[index].upper() == sentence[index],
-		'is_pos': sentence[index] in pos_wordlist,
-		'is_neg': sentence[index] in neg_wordlist}
-		#'is_adj': pos_ta == 'JJ',
-		#'is_verb': 'VB' in pos_ta}
-	
-def untag(tagged_sentence):
-	return [w for w, t in tagged_sentence]
-
-def transform_to_dataset(sen):
-	X, y = [],[]
-	tagged_sentence = []
-	for i in sen:
-		tagged_sentence.append(pos_tag(word_tokenize(i)))
-
-	for tagged in tagged_sentence:
-		for index in range(len(tagged)):
-			pos_ta = tagged[index][1]
-			X.append(features(untag(tagged), index, pos_ta))
-	
-	return X
-
-def trans(data):
-	X = []
-	for lines in data:
-		line = word_tokenize(lines)
-		for index in range(len(line)):
-			X.append(features(line, index))
-	
-	return X
-
 class ArrayCaster(BaseEstimator, TransformerMixin):
   def fit(self, x, y=None):
     return self
@@ -84,11 +49,10 @@ class ArrayCaster(BaseEstimator, TransformerMixin):
     
 def classify(dataset):
 	X = dataset['text'].values
-	#featuress = transform_to_dataset(X)
 	#colum = ['text','label','features']
 	#cols = [col for col in dataset if col not in colum]
 	#featur = dataset.ix[:,cols]
-	data = dataset[['text','features','netw_size','betw','norm_betw','brok','norm_brok']]
+	data = dataset[['text','netw_size','betw','norm_betw','brok','norm_brok']]
 	y = dataset['label'].map({'extra':0,'intro':1})
 	X_train, X_test, y_train, y_test = train_test_split(data, y, test_size=0.2, random_state=2)
 	vec = TfidfVectorizer(min_df=1,ngram_range=(1,4),smooth_idf=False)
@@ -100,16 +64,64 @@ def classify(dataset):
 				('vec',vec),
 				('tf',TfidfTransformer())
 				])),
-				('netw_size', Pipeline([
-				('sele', FunctionTransformer(lambda x: x['netw_size'], validate=False)),
-				('con',ArrayCaster())
+				('pos_neg', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',Adj()),
+				('ar', DictVectorizer())
+				])),
+				('text', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',TextStats()),
+				('ar', DictVectorizer())
+				])),
+				('prop', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',Afi()),
+				('ar', DictVectorizer())
+				])),
+				('pun', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',Punt()),
+				('ar', DictVectorizer())
+				])),
+				('ex', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',ExtraWord()),
+				('ar', DictVectorizer())
+				])),
+				('pro', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',Pronouns()),
+				('ar', DictVectorizer())
+				])),
+				('adj', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',PosNeg()),
+				('ar', DictVectorizer())
+				])),
+				('h4', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',H4Lvd()),
+				('ar', DictVectorizer())
 				])),
 				('brok', Pipeline([
 				('sele', FunctionTransformer(lambda x: x['brok'], validate=False)),
 				('con',ArrayCaster())
 				])),
+				('netw_size', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['netw_size'], validate=False)),
+				('con',ArrayCaster())
 				])),
-				('clf', DecisionTreeClassifier())
+				('betw', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['betw'], validate=False)),
+				('con',ArrayCaster())
+				])),
+				('norm_betw', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['norm_betw'], validate=False)),
+				('con',ArrayCaster())
+				])),
+				])),
+				('clf', LinearSVC())
 				])
 	classifier.fit(X_train,y_train)
 	predict = classifier.predict(X_test)
@@ -121,7 +133,7 @@ def classify(dataset):
 
 def cla_ling(dataset):
 	X = dataset['text'].values
-	data = dataset[['text','features','netw_size','betw','norm_betw','brok','norm_brok']]
+	data = dataset[['text','netw_size','betw','norm_betw','brok','norm_brok']]
 	y = dataset['label'].map({'extra':0,'intro':1})
 	X_train, X_test, y_train, y_test = train_test_split(data, y, test_size=0.2, random_state=2)
 	vec = TfidfVectorizer(min_df=1,ngram_range=(1,4),smooth_idf=False)
@@ -153,9 +165,9 @@ def cla_ling(dataset):
 	print(metrics.classification_report(y_test,predict, target_names=labell))
 
 def clasi_test(dataset, test_data):
-	X_train = dataset[['text','features','netw_size','betw','norm_betw','brok','norm_brok']]
+	X_train = dataset[['text','netw_size','betw','norm_betw','brok','norm_brok']]
 	y_train = dataset['label'].map({'extra':0,'intro':1})
-	X_test = test_data[['text','features','netw_size','betw','norm_betw','brok','norm_brok']]
+	X_test = test_data[['text','netw_size','betw','norm_betw','brok','norm_brok']]
 	y_test = test_data['label'].map({'extra':0, 'intro': 1})
 	vec = TfidfVectorizer(min_df=1,ngram_range=(1,4),smooth_idf=False)
 	print('Start Classfy.....')
@@ -166,23 +178,64 @@ def clasi_test(dataset, test_data):
 				('vec',vec),
 				('tf',TfidfTransformer())
 				])),
-				('Textlength', Pipeline([
-				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
-				('stats', TextStats()),
-				('vect', DictVectorizer())
-				])),
 				('pos_neg', Pipeline([
 				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
-				('stats',PosNeg()),
+				('stats',Adj()),
+				('ar', DictVectorizer())
+				])),
+				('text', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',TextStats()),
 				('ar', DictVectorizer())
 				])),
 				('prop', Pipeline([
 				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',Afi()),
+				('ar', DictVectorizer())
+				])),
+				('pun', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',Punt()),
+				('ar', DictVectorizer())
+				])),
+				('ex', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',ExtraWord()),
+				('ar', DictVectorizer())
+				])),
+				('pro', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
 				('stats',Pronouns()),
 				('ar', DictVectorizer())
 				])),
+				('adj', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',PosNeg()),
+				('ar', DictVectorizer())
 				])),
-				('clf', LinearSVC())
+				('h4', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('stats',H4Lvd()),
+				('ar', DictVectorizer())
+				])),
+				('brok', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['brok'], validate=False)),
+				('con',ArrayCaster())
+				])),
+				('netw_size', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['netw_size'], validate=False)),
+				('con',ArrayCaster())
+				])),
+				('betw', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['betw'], validate=False)),
+				('con',ArrayCaster())
+				])),
+				('norm_betw', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['norm_betw'], validate=False)),
+				('con',ArrayCaster())
+				])),
+				])),
+				('clf', GaussianNB())
 				])
 	classifier.fit(X_train,y_train)
 	predict = classifier.predict(X_test)

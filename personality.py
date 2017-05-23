@@ -379,17 +379,15 @@ class Adj(BaseEstimator, TransformerMixin):
 		score = []
 		for lines in data:
 			line = nltk.pos_tag(nltk.word_tokenize(lines))
-			adjec, verb, nn, pro = 0, 0, 0, 0
+			adjec, verb, pro = 0, 0, 0
 			for word in line:
 				if word[1] == 'JJ':
 					adjec += 1
 				elif 'VB' in word[1]:
 					verb += 1
-				elif 'NN' in word[1]:
-					nn += 1
 				elif 'PRP' in word[1]:
 					pro += 1
-			score.append({'ajec':adjec, 'verb':verb, 'noun':nn, 'prop':pro})
+			score.append({'ajec':adjec, 'verb':verb, 'prop':pro})
 		
 		return score
 
@@ -444,8 +442,8 @@ class H4Lvd(BaseEstimator, TransformerMixin):
 		h_list = h4_list()
 		for lines in data:
 			line = nltk.word_tokenize(lines)
+			pos, neg, nn, ad, ac, ps = 0,0,0,0,0,0
 			for word in line:
-				pos, neg, nn, ad = 0,0,0,0
 				word = word.lower()
 				if word in h_list:
 					if 'Neg' in h_list[word]:
@@ -456,8 +454,11 @@ class H4Lvd(BaseEstimator, TransformerMixin):
 						nn += 1
 					elif 'adj' in h_list[word]:
 						ad += 1
-			sco.append({'ajec':ad, 'pos':pos, 'noun':nn, 'neg':neg})
-						
+					elif 'Actv' in h_list[word]:
+						ac += 1
+					elif 'Psv' in h_list[word]:
+						ps += 1
+			sco.append({'ajec':ad, 'pos':pos, 'noun':nn, 'neg':neg, 'active':ac,'passive':ps})
 		return sco
 		
 class ExtraWord(BaseEstimator, TransformerMixin):
@@ -495,7 +496,7 @@ class Pronouns(BaseEstimator, TransformerMixin):
 	def transform(self, data):
 		score = []
 		self_referencing = ['I', 'me', 'my','mine']
-		social_ref = ['you','she','he', 'we','they','*PROPNAME*','them','his','her','your','anyone','our','everyone']
+		social_ref = ['you','she','he', 'we','they','*PROPNAME*','them','his','her','your','anyone','our','everyone','us']
 		for lines in data:
 			self_s = 0
 			social_s = 0
@@ -527,38 +528,8 @@ def pos_neg_words():
 	
 	return pos_wordlist, neg_wordlist
 
-def pos_neg(training_set):
-	pos_wordlist, neg_wordlist = pos_neg_words()
-	features = []
-	punctuation = ['!','!!','!!!','^_^','<','3',':']
-	extra_wordlist = ['sang','hotel','kissed','shots','golden','dad','girls','restaurant','eve','best',
-					'proud','miss','soccer','met','brother','cheers', 'friends','tickets','concern','friday',
-					'aka','haha','drinks','Ryan','countless','bar','request','cats','football','checking','excitement',
-					'love','kidding','hot','spend','glory','sing','perfect','every','sweet','dance','summer','afternoon',
-					'exploring','finishing','early','evening','Reagan','visiting','year','spring','two','through','rest','gray',
-					'book','until','hug','blast','chips','greeted','minutes','rest','times','cup','beach','seconds','Olympic',
-					'following','dinner','participants','sharing','unusual','particular','lake','seemed','adventure','determined',
-					'activity','doctor','toys','infection','box','cherry','strength','require','providing','increased','health',
-					'conversation','ways','children','fewer','fascinating']
-	self_referencing = ['I', 'me', 'my']
-	social_ref = ['you','she','he', 'we','they','*PROPNAME*']
-	for lines in training_set:
-		info_f = []
-		for word in lines:
-			if word in pos_wordlist or word in neg_wordlist:
-				info_f.append(word)
-			elif word in punctuation or word in extra_wordlist:
-				info_f.append(word)
-			elif word in self_referencing or word in social_ref:
-				info_f.append(word)
-		features.append(' '.join(info_f))
-		
-	return features
-		
-
 def network_prop(training_set, with_id):
 	net_size, betw, norm_betw, brok, norm_brok, status, label, length = [], [], [], [], [], [], [], []
-	features = pos_neg(training_set)
 	for lines in with_id:
 		length.append(len(lines[1]))
 		net_size.append(int(lines[0][0]))
@@ -568,8 +539,8 @@ def network_prop(training_set, with_id):
 		norm_brok.append(float(lines[0][4]))
 		status.append(' '.join(lines[1]))
 		label.append(lines[2])
-	print('Average per status :',sum(length)/len(length))
-	print('Totaal woorden :',sum(length))
+	"""print('Average per status :',sum(length)/len(length))
+	print('Totaal woorden :',sum(length))"""
 	l_10, l_20, l_30, l_40, l_50, l = [], [],[],[],[],[]
 	for i in length:
 		if i <= 10:
@@ -589,7 +560,7 @@ def network_prop(training_set, with_id):
 	print(max(brok))
 	print(max(length))
 	print(len(l_10),len(l_20),len(l_30),len(l_40),len(l_50),len(l))"""
-	data = pd.DataFrame({'text':status,'label':label, 'features':features, 'netw_size':net_size,'betw':betw,
+	data = pd.DataFrame({'text':status,'label':label,'netw_size':net_size,'betw':betw,
 						'norm_betw':norm_betw,'brok':brok,'norm_brok':norm_brok})
 
 	return data
@@ -617,12 +588,28 @@ def classify(df):
 	print('Start Classifier.....')
 	classifier = Pipeline([
 				('features', FeatureUnion([
-				('ADJ', Pipeline([
-				('stats',Afi()),
+				('prop', Pipeline([
+				('stats',Pronouns()),
+				('ar', DictVectorizer())
+				])),
+				('Punt', Pipeline([
+				('stats',Punt()),
+				('ar', DictVectorizer())
+				])),
+				('text', Pipeline([
+				('stats',TextStats()),
+				('ar', DictVectorizer())
+				])),
+				('eXTRA', Pipeline([
+				('stats',ExtraWord()),
 				('ar', DictVectorizer())
 				])),
 				('pr', Pipeline([
-				('stats',Punt()),
+				('stats', Afi()),
+				('ar', DictVectorizer())
+				])),
+				('ha', Pipeline([
+				('stats', H4Lvd()),
 				('ar', DictVectorizer())
 				])),
 				('vect',Pipeline([
@@ -630,7 +617,7 @@ def classify(df):
 				('tf', TfidfTransformer())
 				])),
 				])),
-				('clf', AdaBoostClassifier())
+				('clf', DecisionTreeClassifier())
 				])
 
 	#classifier = MultinomialNB()
