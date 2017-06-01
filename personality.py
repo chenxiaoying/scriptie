@@ -3,7 +3,6 @@ import csv
 import nltk
 from random import shuffle
 import pickle
-import nltk.classify
 
 import collections, itertools
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
@@ -19,7 +18,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn import tree
 from classification import precision_recall
 from sklearn import svm
-from sklearn.svm import LinearSVC, LinearSVR
+from sklearn.svm import LinearSVC, LinearSVR, SVC
 from sklearn.linear_model import SGDClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestRegressor
@@ -30,7 +29,9 @@ from sklearn.linear_model import LogisticRegressionCV
 from scipy.sparse import hstack
 from sklearn.preprocessing import FunctionTransformer, OneHotEncoder
 from afinn import Afinn
-from sklearn.ensemble import AdaBoostClassifier
+from sklearn.ensemble import AdaBoostClassifier, ExtraTreesClassifier
+from sklearn.model_selection import KFold, StratifiedKFold
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 
 """ Prepare training and test data"""
 
@@ -40,13 +41,12 @@ def read_corpus():
 	with open('mypersonality_final.csv', encoding='utf-8', errors='ignore') as data_file:
 		readfile = csv.DictReader(data_file)
 		for line in readfile:
-			tokens = nltk.word_tokenize(line['STATUS'])
 			try:
-				statusAll[line['#AUTHID']].append(tokens)
+				statusAll[line['#AUTHID']].append(line['STATUS'])
 			except KeyError:
-				statusAll[line['#AUTHID']] = [tokens]
+				statusAll[line['#AUTHID']] = [line['STATUS']]
 				
-			userinfo[line['#AUTHID']] = ([line['NETWORKSIZE'],line['BETWEENNESS'],line['NBETWEENNESS'],line['BROKERAGE'],line['NBROKERAGE']],
+			userinfo[line['#AUTHID']] = ([line['NETWORKSIZE'],line['BETWEENNESS'],line['NBETWEENNESS'],line['BROKERAGE'],line['NBROKERAGE'],line['TRANSITIVITY'],line['DENSITY']],
 									line['sEXT'],line['sNEU'],line['sAGR'],line['sOPN'],line['sCON'],
 									line['cEXT'],line['cNEU'],line['cAGR'],line['cOPN'],line['cCON'])
 
@@ -60,16 +60,16 @@ def calc(userinfo):
 	tot = 0
 	t = 0
 	extagr = 0
+	count_ex = 0
 	d = []
 	for i in userinfo:
 		if userinfo[i][6] == 'y':
 			tot = tot + 1
-		if float(userinfo[i][1]) < 3 and float(userinfo[i][3]) < 3:
+		if float(userinfo[i][1]) > 3 and float(userinfo[i][3]) > 3:
 			extagr = extagr + 1
 			d.append(i)
 		if userinfo[i][6] == 'n':
-			t = t + 1
-			
+			t = t + 1	
 	print("Total yes: {}\nTotal no: {}\nTotal users with scores higher than 3: {}".format(tot,t,extagr))
 	
 	s_Ex = []
@@ -151,36 +151,14 @@ def calc_status(labeld_data):
 	print('Average status introverts: ',average_in)
 	print('Average status extroverts: ',average_ex)
 
-			
-		
-"""code comes from information retrieval assignment 1"""
-# splits a labelled dataset into two disjoint subsets train and test
-def split_train_test(labeld_data, split=0.76):
-	train_feats = []
-	test_feats = []
-
+def whole_data(labeld_data):
 	feats = []
 	for i in labeld_data:
 		feats.append((i,labeld_data[i]))
-		
-	shuffle(feats) # randomise dataset before splitting into train and test
-	cutoff = int(len(feats) * split)
-	train_feats, test_feats = feats[:cutoff], feats[cutoff:]    
 	
-	print("\n##### Splitting datasets...")
-	print("  Training set: %i" % len(train_feats))
-	print("  Test set: %i" % len(test_feats))
-	
-	with open('training.pickle','wb') as train_file:
-		pickle.dump(train_feats,train_file)
-	with open('test.pickle','wb') as test_file:
-		pickle.dump(test_feats,test_file)
-			
-	print('Data already write to file!')
-	
-	return train_feats, test_feats
-
-
+	with open('whole_data.pickle','wb') as d_file:
+		pickle.dump(feats, d_file)
+	print('{} Data already write to file!'.format(len(feats)))
 #############################################################
 """ Prepare for training and test data """
 def prepare_data():
@@ -188,47 +166,22 @@ def prepare_data():
 	statusAll,userinfo = read_corpus()
 	### calculate the distribution of dataset
 	d = calc(userinfo)
-	### split dataset into introversion and extraversion
-	#labeld_data = splitdata(d, statusAll)
-	### Calculate status
-	#calc_status(labeld_data)
-	### split into training data and test data
-	#split_train_test(labeld_data)
+	##### split dataset into introversion and extraversion
+	labeld_data = splitdata(d, statusAll)
+	##### Calculate status
+	calc_status(labeld_data)
+	#### write data in file
+	whole_data(labeld_data)
 
 ##############################################################
 
 """ Ready for classifier """
-
-###### dataset for nltk classifier
-def read_training_data_nltk():
-	training_set = []
-	bigr_set = []
-	tri_set = []
-	training_data = pickle.load(open('training.pickle','rb'))
-	count = 0
-	for lines in training_data:
-		for line in lines[1][0]:
-			count = count + 1
-			feat = dict([(word, True) for word in line])
-			training_set.append((feat,lines[1][1]))
-			bigr = list(nltk.bigrams(line))
-			bigr_feats = dict([(word[0] + ' ' + word[1], True) for word in bigr])
-			bigr_set.append((bigr_feats, lines[1][1]))
-			trigr = list(nltk.trigrams(line))
-			trigr_feats = dict([(word[0] + ' ' + word[1], True) for word in trigr])
-			tri_set.append((trigr_feats, lines[1][1]))
-			
-	
-
-	print("Total training data loaded: ",count)
-
-	return training_set, bigr_set, tri_set
 	
 ## dataset for scikit
 def read_training_data_s():
 	training_set = []
 	labels = []
-	training_data = pickle.load(open('training.pickle','rb'))
+	training_data = pickle.load(open('whole_data.pickle','rb'))
 	count = 0
 	data_with_labels = []
 	with_id = []
@@ -237,68 +190,130 @@ def read_training_data_s():
 		allstatus = []
 		for line in lines[1][0]:
 			count = count + 1
-			training_set.append(line)
+			training_set.append((line,lines[1][1]))
 			labels.append(lines[1][1])
 			for word in line:
 				allstatus.append(word)
 			if lines[0] in network:
 				with_id.append((network[lines[0]][0],line,lines[1][1]))
-		data_with_labels.append((allstatus,lines[1][1]))
 			
-	print("Total training data loaded: ",count,"\n")
+	print("Total data loaded: ",count,"\n")
 	
-	return training_set, labels, data_with_labels, with_id
+	return training_set, with_id
+		
 
-def read_test_data_s():
-	test_set = []
-	test_data = pickle.load(open('test.pickle','rb'))
-	count = 0
-	with_id = []
+def read_whole():
+	dataset = pickle.load(open('whole_data.pickle','rb'))
+	net_size, betw, norm_betw, brok, norm_brok, sta, label, tr, den = [],[], [], [], [], [], [], [], []
 	status, network = read_corpus()
-	for lines in test_data:
-		for line in lines[1][0]:
-			count = count + 1
-			test_set.append(line)
-			if lines[0] in network:
-				with_id.append((network[lines[0]][0],line,lines[1][1]))
-			
-	print("Total test data loaded: ",count,"\n")
+	for users in dataset:
+		user_status = ' '.join([line for lines in users[1][0] for line in lines])
+		if users[0] in network:
+			lines = network[users[0]]
+		net_size.append(int(lines[0][0]))
+		betw.append(float(lines[0][1]))
+		norm_betw.append(float(lines[0][2]))
+		brok.append(int(lines[0][3]))
+		norm_brok.append(float(lines[0][4]))
+		sta.append(user_status)
+		label.append(users[1][1])
+		tr.append(float(lines[0][5]))
+		den.append(float(lines[0][6]))
+	data = pd.DataFrame({'text':sta,'label':label,'netw_size':net_size,'betw':betw,
+						'norm_betw':norm_betw,'brok':brok,'norm_brok':norm_brok,'trans':tr, 'density':den})
+
+	return data
+
+
+###############################################################################
+
+""" Prepare data for experiment 1 """
+def status(training_set):
+	text, label = [],[]
+	for i in training_set:
+		text.append(i[0])
+		label.append(i[1])
+		
+	data = pd.DataFrame({'text':text, 'label':label})
+	return data
+
+
+""" Get social network properties for experiment 2 """
+def network_prop(training_set, with_id):
+	net_size, betw, norm_betw, brok, norm_brok, status, label, length, tr, den = [],[],[], [], [], [], [], [], [], []
+	for lines in with_id:
+		length.append(len(lines[1]))
+		net_size.append(int(lines[0][0]))
+		betw.append(float(lines[0][1]))
+		norm_betw.append(float(lines[0][2]))
+		brok.append(int(lines[0][3]))
+		norm_brok.append(float(lines[0][4]))
+		status.append(' '.join(lines[1]))
+		label.append(lines[2])
+		tr.append(float(lines[0][5]))
+		den.append(float(lines[0][6]))
+	"""print('Average per status :',sum(length)/len(length))
+	print('Totaal woorden :',sum(length))"""
+	print(max(net_size))
+	l_10, l_20, l_30, l_40, l_50, l = [], [],[],[],[],[]
+	for i in length:
+		if i <= 10:
+			l_10.append(i)
+		elif 10 < i <= 20:
+			l_20.append(i)
+		elif 20 < i <= 30:
+			l_30.append(i)
+		elif 30 < i <= 40:
+			l_40.append(i)
+		elif 40 < i <= 50:
+			l_50.append(i)
+		else:
+			l.append(i)
 	
-	return test_set, with_id
+	"""print(max(betw))
+	print(max(brok))
+	print(max(length))
+	print(len(l_10),len(l_20),len(l_30),len(l_40),len(l_50),len(l))"""
+	data = pd.DataFrame({'text':status,'label':label,'netw_size':net_size,'betw':betw,
+						'norm_betw':norm_betw,'brok':brok,'norm_brok':norm_brok,'trans':tr,'den':den})
+
+	return data
 	
-	
-""" Dummy classifier as baseiline
-	Accuracy: 0.5487 with tokenized 0.9split
-	Accuracy: 0.43 0.75split"""
-def baseline(training_set, labels):
+##############################################################################
+"""Baseline"""
+
+def identity(x):
+	return x
+""" Dummy classifier as baseiline """
+def baseline(df):
 
 	# split corpus in train and test
-	X = np.array(training_set)
-	Y = np.array(labels)
-	split_point = int(0.9*len(X))
-	Xtrain = X[:split_point]
-	Ytrain = Y[:split_point]
-	Xtest = X[split_point:]
-	Ytest = Y[split_point:]
+	X = df['text'].values
+	Y = df['label'].map({'extra':0,'intro':1})
+	Xtrain, Xtest, Ytrain, Ytest = train_test_split(X,Y, test_size=0.1, random_state=0)
 	
 	# dummy classifier
-	dummy_classifier = DummyClassifier(strategy='most_frequent',random_state=0)
-	dummy_classifier.fit(Xtrain,Ytrain)
-	guess = []
-	for i in Xtest:
-		Yguess = dummy_classifier.predict([i])
-		guess.append(Yguess)
-		
-	# evaluate
-	c = 0
-	for i in guess:
-		if i == ['extra']:
-			c += 1
-			
-	print("Total tested in baseline                : ",len(Ytest))
-	print("Total extraversion predicted in baseline: ",c,"\n")
-	print("Accuracy baseline                       : ",metrics.accuracy_score(Ytest, guess),"\n")
-	
+	tfidf = True
+
+# we use a dummy function as tokenizer and preprocessor,
+# since the texts are already preprocessed and tokenized.
+	if tfidf:
+		vec = TfidfVectorizer(preprocessor = identity,
+						  tokenizer = identity)
+	else:
+		vec = CountVectorizer(preprocessor = identity,
+				tokenizer = identity)
+				
+	dummy_classifier = DummyClassifier(random_state=0)
+	pipeline = Pipeline([('vec',vec),
+						('clf', dummy_classifier)
+						])
+	pipeline.fit(Xtrain,Ytrain)
+	predict = pipeline.predict(Xtest)
+	print('accuracy: ',metrics.accuracy_score(Ytest, predict))
+	print(metrics.confusion_matrix(Ytest, predict))
+	labell = ['extra','intro']
+	print(metrics.classification_report(Ytest,predict, target_names=labell))
 
 ###############################################################
 """ Extract linguistic features """ 
@@ -314,14 +329,6 @@ class TextStats(BaseEstimator, TransformerMixin):
 		return [{'length': len(text.split()),
 				 'word_length': np.mean([len(word) for word in text.split()])}
 				for text in posts]
-
-def features(sentence, index):
-	pos_wordlist, neg_wordlist = pos_neg_words()
-	sentence[index] = sentence[index].lower()
-	""" sentence: [w1, w2, ...], index: the index of the word """
-	return {
-		'is_pos': sentence[index] in pos_wordlist,
-		'is_neg': sentence[index] in neg_wordlist}
 		
 class PosNeg(BaseEstimator, TransformerMixin):
 	
@@ -330,27 +337,16 @@ class PosNeg(BaseEstimator, TransformerMixin):
 		
 	def transform(self, data):
 		feat = []
+		pos_wordlist, neg_wordlist = pos_neg_words()
 		for lines in data:
-			feature = []
 			line = nltk.word_tokenize(lines)
-			for index in range(len(line)):
-				feature.append(features(line, index))
-			pos = 0
-			neg = 0
-			for diction in feature:
-				if diction['is_pos'] == True:
+			pos, neg = 0, 0
+			for word in line:
+				if word in pos_wordlist:
 					pos += 1
-				if diction['is_neg'] == True:
+				if word in neg_wordlist:
 					neg += 1
-			if pos != 0 and neg != 0:
-				feat.append({'is_pos':True, 'is_neg': True, 'pos_n': pos, 'neg_n':neg})
-			elif pos != 0 and neg == 0:
-				feat.append({'is_pos':True, 'is_neg': False, 'pos_n': pos, 'neg_n':neg})
-			elif pos == 0 and neg != 0:
-				feat.append({'is_pos':False, 'is_neg': True, 'pos_n': pos, 'neg_n':neg})
-			else:
-				feat.append({'is_pos':False, 'is_neg': False, 'pos_n': pos, 'neg_n':neg})	
-		
+			feat.append({'is_pos': pos, 'is_neg': neg})
 		return feat
 		
 class Punt(BaseEstimator, TransformerMixin):
@@ -360,7 +356,7 @@ class Punt(BaseEstimator, TransformerMixin):
 		
 	def transform(self, data):
 		score = []
-		punctuation = ['.','!','^_^','<','3',':']
+		punctuation = ['.','!','^_^','-','_','^','<','3',':',',',')',';','"','>','@','[',']','{','}','/','&']
 		for lines in data:
 			punt = 0
 			for word in lines:
@@ -370,7 +366,7 @@ class Punt(BaseEstimator, TransformerMixin):
 		
 		return score
 
-class Adj(BaseEstimator, TransformerMixin):
+class PosTag(BaseEstimator, TransformerMixin):
 	
 	def fit(self, x, y=None):
 		return self
@@ -379,15 +375,7 @@ class Adj(BaseEstimator, TransformerMixin):
 		score = []
 		for lines in data:
 			line = nltk.pos_tag(nltk.word_tokenize(lines))
-			adjec, verb, pro = 0, 0, 0
-			for word in line:
-				if word[1] == 'JJ':
-					adjec += 1
-				elif 'VB' in word[1]:
-					verb += 1
-				elif 'PRP' in word[1]:
-					pro += 1
-			score.append({'ajec':adjec, 'verb':verb, 'prop':pro})
+			score.append({word[0]:word[1] for word in line})
 		
 		return score
 
@@ -402,36 +390,13 @@ class Afi(BaseEstimator, TransformerMixin):
 		for lines in data:
 			afinn = Afinn(emoticons=True)
 			sc = afinn.score(lines)
-			sco.append({'afinn':sc})
+			if sc > 0:
+				sco.append({'afinn':True})
+			else:
+				sco.append({'afinn:':False})
 		
 		return sco
 		
-
-def h4_list():
-	h4 = open('inqdict.txt','r')
-	h4l = {}
-	for lines in h4:
-		line = lines.split()
-		word = line[0].lower()
-		if '#' in word:
-			word = word.split('#')[0]
-		try:
-			h4l[word].append(line[1:])
-		except KeyError:
-			h4l[word] = [line[1:]]
-	
-	for i in h4l:
-		new_l = []
-		for li in h4l[i]:
-			if type(li) is list:
-				new_l += li
-			else:
-				print(li)
-				new_l = h4l[i]
-		h4l[i] = new_l
-
-	return h4l
-
 class H4Lvd(BaseEstimator, TransformerMixin):
 	
 	def fit(self, x, y=None):
@@ -442,7 +407,7 @@ class H4Lvd(BaseEstimator, TransformerMixin):
 		h_list = h4_list()
 		for lines in data:
 			line = nltk.word_tokenize(lines)
-			pos, neg, nn, ad, ac, ps = 0,0,0,0,0,0
+			pos, neg, nn, ad, ac, ps, inc, dec, qua, so = 0,0,0,0,0,0,0,0,0,0
 			for word in line:
 				word = word.lower()
 				if word in h_list:
@@ -458,7 +423,17 @@ class H4Lvd(BaseEstimator, TransformerMixin):
 						ac += 1
 					elif 'Psv' in h_list[word]:
 						ps += 1
-			sco.append({'ajec':ad, 'pos':pos, 'noun':nn, 'neg':neg, 'active':ac,'passive':ps})
+					elif 'Incr' in h_list[word]:
+						inc += 1
+					elif 'Decr' in h_list[word]:
+						dec += 1
+					elif 'Qual' in h_list[word]:
+						qua += 1
+					elif 'Social' in h_list[word]:
+						so += 1
+					
+			sco.append({'ajec':ad, 'pos':pos, 'noun':nn, 'neg':neg, 'active':ac,'passive':ps,'increase':inc,
+						'decrease':dec,'Quality':qua, 'social':so})
 		return sco
 		
 class ExtraWord(BaseEstimator, TransformerMixin):
@@ -496,10 +471,14 @@ class Pronouns(BaseEstimator, TransformerMixin):
 	def transform(self, data):
 		score = []
 		self_referencing = ['I', 'me', 'my','mine']
-		social_ref = ['you','she','he', 'we','they','*PROPNAME*','them','his','her','your','anyone','our','everyone','us']
+		social_ref = ['you','she','he', 'we','they','*PROPNAME*','them','his','her',
+						'your','anyone','our','everyone','us','it','him','ours','yours','theirs',
+						'their','myself','yourself','herself','itself','ourselves','yourselves',
+						'themselves','all','another','any','anybody','anything','both','each',
+						'either','everybody','everything','few','many','most','neither','nobody',
+						'none','nothing','other','others','somebody','some','someone','something','such']		
 		for lines in data:
-			self_s = 0
-			social_s = 0
+			self_s, social_s= 0,0
 			line = nltk.word_tokenize(lines)
 			for word in line:
 				word = word.lower()
@@ -515,6 +494,9 @@ class Pronouns(BaseEstimator, TransformerMixin):
 		
 
 ################################################################
+
+""" Additional word lists """
+
 """ Get list of positive and negative words"""
 def pos_neg_words():
 	pos_wordlist = []
@@ -528,42 +510,31 @@ def pos_neg_words():
 	
 	return pos_wordlist, neg_wordlist
 
-def network_prop(training_set, with_id):
-	net_size, betw, norm_betw, brok, norm_brok, status, label, length = [], [], [], [], [], [], [], []
-	for lines in with_id:
-		length.append(len(lines[1]))
-		net_size.append(int(lines[0][0]))
-		betw.append(float(lines[0][1]))
-		norm_betw.append(float(lines[0][2]))
-		brok.append(int(lines[0][3]))
-		norm_brok.append(float(lines[0][4]))
-		status.append(' '.join(lines[1]))
-		label.append(lines[2])
-	"""print('Average per status :',sum(length)/len(length))
-	print('Totaal woorden :',sum(length))"""
-	l_10, l_20, l_30, l_40, l_50, l = [], [],[],[],[],[]
-	for i in length:
-		if i <= 10:
-			l_10.append(i)
-		elif 10 < i <= 20:
-			l_20.append(i)
-		elif 20 < i <= 30:
-			l_30.append(i)
-		elif 30 < i <= 40:
-			l_40.append(i)
-		elif 40 < i <= 50:
-			l_50.append(i)
-		else:
-			l.append(i)
+""" H4LVD """
+def h4_list():
+	h4 = open('inqdict.txt','r')
+	h4l = {}
+	for lines in h4:
+		line = lines.split()
+		word = line[0].lower()
+		if '#' in word:
+			word = word.split('#')[0]
+		try:
+			h4l[word].append(line[1:])
+		except KeyError:
+			h4l[word] = [line[1:]]
 	
-	"""print(max(betw))
-	print(max(brok))
-	print(max(length))
-	print(len(l_10),len(l_20),len(l_30),len(l_40),len(l_50),len(l))"""
-	data = pd.DataFrame({'text':status,'label':label,'netw_size':net_size,'betw':betw,
-						'norm_betw':norm_betw,'brok':brok,'norm_brok':norm_brok})
+	for i in h4l:
+		new_l = []
+		for li in h4l[i]:
+			if type(li) is list:
+				new_l += li
+			else:
+				print(li)
+				new_l = h4l[i]
+		h4l[i] = new_l
 
-	return data
+	return h4l
 		
 
 #####################################################################
@@ -582,170 +553,64 @@ class ArrayCaster(BaseEstimator, TransformerMixin):
 """Scikit Classifiers """
 def classify(df):
 	X = df['text'].values
-	Y = df['label'].map({'extra':0,'intro':1})
-	X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.1, random_state=42)
+	y = df['label'].map({'extra':0,'intro':1})
+	#X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+	#print('Total Training data: ',len(X_train))
+	#print('Total Test data: ',len(X_test))
 	vec = TfidfVectorizer(min_df=1,ngram_range=(1,4),smooth_idf=False)
+	count_vec = CountVectorizer(stop_words='english')
 	print('Start Classifier.....')
 	classifier = Pipeline([
 				('features', FeatureUnion([
-				('prop', Pipeline([
-				('stats',Pronouns()),
-				('ar', DictVectorizer())
-				])),
-				('Punt', Pipeline([
-				('stats',Punt()),
-				('ar', DictVectorizer())
-				])),
-				('text', Pipeline([
-				('stats',TextStats()),
-				('ar', DictVectorizer())
-				])),
-				('eXTRA', Pipeline([
-				('stats',ExtraWord()),
-				('ar', DictVectorizer())
-				])),
-				('pr', Pipeline([
-				('stats', Afi()),
-				('ar', DictVectorizer())
-				])),
-				('ha', Pipeline([
-				('stats', H4Lvd()),
-				('ar', DictVectorizer())
-				])),
 				('vect',Pipeline([
 				('vec',vec),
 				('tf', TfidfTransformer())
 				])),
 				])),
-				('clf', DecisionTreeClassifier())
+				('clf', SVC(kernel='linear',C=1.0))
 				])
-
-	#classifier = MultinomialNB()
-	classifier.fit(X_train,y_train)
-	predict = classifier.predict(X_test)
-	print(metrics.accuracy_score(y_test, predict))
-	print(metrics.confusion_matrix(y_test, predict))
-	labell = ['extra','intro']
-	print(metrics.classification_report(y_test,predict, target_names=labell))
-
-##############################################################################
-"""Nltk classifiers"""
-
-def bag_of_words(words):
-	'''
-	>>> bag_of_words(['the', 'quick', 'brown', 'fox'])
-	{'quick': True, 'brown': True, 'the': True, 'fox': True}
-	'''
-	return dict([(word, True) for word in words])
-	
-""" Split data in training and development set randomly """
-def split_train_dev(data_with_labels,split=0.9):
-	train_feats = []
-	test_feats = []
-
-	shuffle(data_with_labels) # randomise dataset before splitting into train and test
-	cutoff = int(len(data_with_labels) * split)
-	train_feats, test_feats = data_with_labels[:cutoff], data_with_labels[cutoff:]  
-	
-	print("\n##### Splitting datasets...")
-	print("  Training set: %i" % len(train_feats))
-	print("  Develop set: %i" % len(test_feats))
-	return train_feats, test_feats
-
-def get_info(train_feats):
-	c  = 0
-	intro = 0
-	pos_wordlist, neg_wordlist = pos_neg_words()
-	self_ref = ['I', 'me', 'my']
-	social_ref = ['you','she','he', 'we','they','*PROPNAME*']
-	punctuation = ['!','!!','!!!','^_^','<','3',':']
-	extra_wordlist = ['sang','hotel','kissed','shots','golden','dad','girls','restaurant','eve','best',
-					'proud','miss','soccer','met','brother','cheers', 'friends','tickets','concern','friday',
-					'aka','haha','drinks','Ryan','countless','bar','request','cats','football','checking','excitement',
-					'love','kidding','hot','spend','glory','sing','perfect','every','sweet','dance','summer','afternoon',
-					'exploring','finishing','early','evening','Reagan','visiting','year','spring','two','through','rest','gray',
-					'book','until','hug','blast','chips','greeted','minutes','rest','times','cup','beach','seconds','Olympic',
-					'following','dinner','participants','sharing','unusual','particular','lake','seemed','adventure','determined',
-					'activity','doctor','toys','infection','box','cherry','strength','require','providing','increased','health',
-					'conversation','ways','children','fewer','fascinating']
-	for statuses in train_feats:
-		for status in statuses:
-			status = dict([(word, False) for word in status])
-			for word in status:
-				word = word.lower()
-				if word in pos_wordlist or word in neg_wordlist:
-					status[word] = True
-				if word in self_ref or word in social_ref:
-					status[word] = True
-				if word in extra_wordlist:
-					status[word] = True
-				if word in punctuation:
-					status[word] = True
-				#if word in pos_wordlist and statuses[1] == 'extra':
-				#	c += 1
-				#if word in neg_wordlist and statuses[1] == 'intro':
-				#	intro += 1
-					
-	print(c, intro)
-	return train_feats
-	
-
-def train(train_feats):
-	classifier = nltk.classify.NaiveBayesClassifier.train(train_feats)
-	#classifier = nltk.classify.SklearnClassifier(LinearSVC()).train(train_feats)
-	#classifier = nltk.classify.DecisionTreeClassifier.train(train_feats, binary=True, entropy_cutoff=0.8, depth_cutoff=5, support_cutoff=300)
-	return classifier
-
-# prints accuracy, precision and recall, f-score
-def evaluation(classifier, test_feats, score):
-	print ("\n##### Evaluation...")
-	print("  Accuracy: %f" % nltk.classify.accuracy(classifier, test_feats))
-
-def split_label(data_with_labels):
-	tr_set = []
-	labels_set = []
-	for i in data_with_labels:
-		tr_set.append(i[0])
-		labels_set.append(i[1])
-		
-	return tr_set, labels_set
+	cv = KFold(n_splits = 10, shuffle=False)
+	acc_score = []
+	for train, test in cv.split(X):
+		X_train, X_test = X[train], X[test]
+		y_train, y_test = y[train], y[test]
+		classifier.fit(X_train,y_train)
+		predict = classifier.predict(X_test)
+		sc = metrics.accuracy_score(y_test, predict)
+		print('accuracy: ',sc)
+		acc_score.append(sc)
+		print(metrics.confusion_matrix(y_test, predict))
+		labell = ['extra','intro']
+		print(metrics.classification_report(y_test,predict, target_names=labell))
+	average_acc = sum(acc_score) / len(acc_score)
+	print('Average accuracy: ', average_acc)
 
 			
 ## Main program
 def Scikit_classify():
 	score = ['extra','intro']
 
-	training_set,labels, data_with_labels, with_id = read_training_data_s()
+	training_set, with_id = read_training_data_s()
+	
 	### Calculate baseline
-	#baseline(training_set,labels)
+	#data = status(training_set)
+	#baseline(data)
 	
-	### Get network properties
-	dataset = network_prop(training_set, with_id)
-	#train_set, labels = split_label(data_with_labels)
+	## Experiment 1: Only linguistic features
+	data = status(training_set)
+	classify(data)
 	
-	####### Scikit ##############
-	classify(dataset)
+	### Experiment 2: Get network properties
+	#dataset = network_prop(training_set, with_id)
+	#classify(dataset)
 	
-
-def nltk_classify():
-	score = ['extra','intro']
-	#######  NLTK  ##############
-	acc = []
-	dataset, bigr_set, tri_set = read_training_data_nltk()
-	for N in range(5):
-		train_feats,test_feats = split_train_dev(bigr_set)
-		train_info = get_info(train_feats)
-		classifier = train(train_info)
-		#evaluation(classifier,test_feats,score)
-		accuracy = nltk.classify.accuracy(classifier, test_feats)
-		print(accuracy)
-		acc.append(accuracy)
-	average = sum(acc) / len(acc)
-	print('Accuracy after N-fold cross validation: ',average)
+	### All status of a user to one
+	#dataset = read_whole()
 	
 
-### nltk bayes without features: 0.649
 if __name__ == "__main__":
-	Scikit_classify()
-	#nltk_classify()
+	## Data preprocessing
 	#prepare_data()
+	
+	## Classification
+	Scikit_classify()
