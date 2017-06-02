@@ -1,0 +1,217 @@
+Tfidf + linear svc + 10-fold + shuffle=true
+Average accuracy:  0.603410635233
+Average precision:  0.601333782759
+Average recall:  0.460579146885
+Average f1-score:  0.521386395463
+
+---------------------------------------------------------
+Tfidf + decision tree + 10-fold + shuffle=true
+Average accuracy:  0.527378869503
+Average precision:  0.497101678186
+Average recall:  0.517504784309
+Average f1-score:  0.506719546524
+
+-----------------------------------------------------------
+Tfidf + naive bayes + 10-fold + shuffle=true
+Average accuracy:  0.591814739917
+Average precision:  0.66343320462
+Average recall:  0.265068767695
+Average f1-score:  0.378323735309
+
+--------------------------------------------------------
+Tfidf + kneigbourhood + 10-fold + shuffle=true
+Average accuracy:  0.492084404805
+Average precision:  0.472549237488
+Average recall:  0.713005845593
+Average f1-score:  0.567487025743
+
+###########################################################
+On base on tfidf + feature
+Punt + knei
+Average accuracy:  0.513055096677
+Average precision:  0.484828342736
+Average recall:  0.614739916812
+Average f1-score:  0.541303854924
+---------------------------------------------------------
+Punt + linear SVC
+Average accuracy:  0.604014965333
+Average precision:  0.595721776546
+Average recall:  0.487022121436
+Average f1-score:  0.535604922442
+
+-----------------------------------------------------------
+Punt + decision tree 
+Average accuracy:  0.525660277172
+Average precision:  0.495107367617
+Average recall:  0.475104582392
+Average f1-score:  0.484218489566
+
+-----------------------------------------------------------
+punt + nb
+Average accuracy:  0.555007669835
+Average precision:  0.715010492631
+Average recall:  0.0865052840491
+Average f1-score:  0.154076485078
+
+==========================================================
+Extra + nb
+Average accuracy:  0.587882576251
+Average precision:  0.668124979298
+Average recall:  0.242791802107
+Average f1-score:  0.355750926073
+
+----------------------------------------------------------
+Extra + decision
+Average accuracy:  0.527681085414
+Average precision:  0.49764680663
+Average recall:  0.527126256923
+Average f1-score:  0.511583997546
+
+--------------------------------------------------------
+Extra + svc
+Average accuracy:  0.603612248136
+Average precision:  0.598248629503
+Average recall:  0.473278435618
+Average f1-score:  0.52827229515
+
+------------------------------------------------------
+extra + kn
+Average accuracy:  0.510134964682
+Average precision:  0.484268906192
+Average recall:  0.6599867482
+Average f1-score:  0.558111296172
+
+========================================================
+Pronouns + kn
+Average accuracy:  0.51739363953
+Average precision:  0.48817132585
+Average recall:  0.564980933309
+Average f1-score:  0.52295437322
+
+-----------------------------------------------------
+pronouns + svc
+Average accuracy:  0.603813454152
+Average precision:  0.600600584284
+Average recall:  0.465734959715
+Average f1-score:  0.524378552776
+
+----------------------------------------------------
+pronouns + nb 
+Average accuracy:  0.582032140067
+Average precision:  0.682792138253
+Average recall:  0.204461945448
+Average f1-score:  0.314314199061
+
+----------------------------------------------------
+pronouns + decision
+Average accuracy:  0.528890762833
+Average precision:  0.498677301871
+Average recall:  0.532253029814
+Average f1-score:  0.514446586545
+
+=======================================================
+Text length + decision
+Average accuracy:  0.524551914814
+Average precision:  0.493891001021
+Average recall:  0.490443191476
+Average f1-score:  0.491760128029
+
+-------------------------------------------------------------
+text length + nb
+Average accuracy:  0.535042295986
+Average precision:  0.940714285714
+Average recall:  0.0103400297372
+Average f1-score:  0.0204261485134
+
+-------------------------------------------------------
+text length + svc
+Average accuracy:  0.602603878454
+Average precision:  0.592592847969
+Average recall:  0.493083403475
+Average f1-score:  0.536355179457
+
+------------------------------------------------------
+text length + kn
+Average accuracy:  0.510536868103
+Average precision:  0.476775318071
+Average recall:  0.432629324062
+Average f1-score:  0.453216122543
+
+===========================================================
+Afi + kn
+Average accuracy:  0.517293748576
+Average precision:  0.489105178555
+Average recall:  0.650121847417
+Average f1-score:  0.556708722625
+
+---------------------------------------------------
+Afi + decision
+Average accuracy:  0.526370296377
+Average precision:  0.495824564402
+Average recall:  0.510022041042
+Average f1-score:  0.502519839272
+
+----------------------------------------------
+Afi + nb
+Average accuracy:  0.586975318186
+Average precision:  0.686596745309
+Average recall:  0.220881666896
+Average f1-score:  0.333798322515
+
+-----------------------------------------------
+Afi + svc
+Average accuracy:  0.604014456723
+Average precision:  0.597071998899
+Average recall:  0.48129321132
+Average f1-score:  0.532743902025
+
+==============================================================
+Posneg + svc
+Average accuracy:  0.602705295238
+Average precision:  0.599518100724
+Average recall:  0.462964383888
+Average f1-score:  0.522211404139
+
+-------------------------------------------------
+Posneg + nb
+Average accuracy:  0.581831340939
+Average precision:  0.678252458928
+Average recall:  0.207829888416
+Average f1-score:  0.317862789794
+
+---------------------------------------------------
+posneg + decision
+Average accuracy:  0.530404283715
+Average precision:  0.500081644669
+Average recall:  0.521759562372
+Average f1-score:  0.51038628186
+
+=================================================================
+H4LVD + DECIS
+Average accuracy:  0.524657197031
+Average precision:  0.494630480993
+Average recall:  0.518496748628
+Average f1-score:  0.505721812786
+
+---------------------------------------------------
+H4 + NB
+Average accuracy:  0.56408442108
+Average precision:  0.721187241164
+Average recall:  0.117073428861
+Average f1-score:  0.201093784676
+
+------------------------------------------------------
+H4 + SVC
+
+=============================================================
+Pos tag + svc
+
+-----------------------------------------------
+postag + nb
+
+--------------------------------------------------
+postag + dec
+
+=============================================================
+
+
