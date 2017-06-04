@@ -32,6 +32,7 @@ from afinn import Afinn
 from sklearn.ensemble import AdaBoostClassifier, ExtraTreesClassifier
 from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.neighbors import KNeighborsClassifier
 
 """ Prepare training and test data"""
 
@@ -63,12 +64,12 @@ def calc(userinfo):
 	count_ex = 0
 	d = []
 	for i in userinfo:
-		if userinfo[i][6] == 'y':
+		if userinfo[i][6] == 'y' and userinfo[i][8] == 'y':
 			tot = tot + 1
 		if float(userinfo[i][1]) > 3 and float(userinfo[i][3]) > 3:
 			extagr = extagr + 1
 			d.append(i)
-		if userinfo[i][6] == 'n':
+		if userinfo[i][6] == 'n' and userinfo[i][8] == 'n':
 			t = t + 1	
 	print("Total yes: {}\nTotal no: {}\nTotal users with scores higher than 3: {}".format(tot,t,extagr))
 	
@@ -95,7 +96,7 @@ def calc(userinfo):
 	return d
 	
 
-""" Split data into extraversion and introversion """
+""" Split data into high sociability and low sociability """
 def splitdata(d,statusAll):
 	totExtra = 0
 	totIntro = 0
@@ -103,13 +104,13 @@ def splitdata(d,statusAll):
 	for i in statusAll:
 		if i in d:
 			totExtra = totExtra + 1
-			labeld_data[i] = (statusAll[i],'extra')
+			labeld_data[i] = (statusAll[i],'high-social')
 		else:
 			totIntro = totIntro + 1
-			labeld_data[i] = (statusAll[i],'intro')
+			labeld_data[i] = (statusAll[i],'low-social')
 				
-	print("Total Extraversion User: ", totExtra)
-	print("Total Introversion User: ", totIntro)
+	print("Total High sociability User: ", totExtra)
+	print("Total Low sociability User: ", totIntro)
 	
 	return labeld_data
 	
@@ -121,7 +122,7 @@ def calc_status(labeld_data):
 	for users in labeld_data:
 		st_p_user = len(labeld_data[users][0])
 		t_s.append(st_p_user)
-		if labeld_data [users][1] == 'intro':
+		if labeld_data [users][1] == 'low-social':
 			st_p_user_in.append(len(labeld_data[users][0]))
 		else:
 			st_p_user_ex.append(len(labeld_data[users][0]))
@@ -146,10 +147,10 @@ def calc_status(labeld_data):
 	print('Aantal users: ', aantal_user)
 	print('Total status all users: ', total)
 	print('Average status per user: ',gemiddeld)
-	print('Total extroverts status: ', extra)
-	print('Total introverts status: ', intro)
-	print('Average status introverts: ',average_in)
-	print('Average status extroverts: ',average_ex)
+	print('Total high sociable status: ', extra)
+	print('Total low sociable status: ', intro)
+	print('Average status low sociable: ',average_in)
+	print('Average status high sociable: ',average_ex)
 
 def whole_data(labeld_data):
 	feats = []
@@ -160,7 +161,7 @@ def whole_data(labeld_data):
 		pickle.dump(feats, d_file)
 	print('{} Data already write to file!'.format(len(feats)))
 #############################################################
-""" Prepare for training and test data """
+""" Prepare data """
 def prepare_data():
 	### read from original dataset
 	statusAll,userinfo = read_corpus()
@@ -187,13 +188,10 @@ def read_training_data_s():
 	with_id = []
 	status, network = read_corpus()
 	for lines in training_data:
-		allstatus = []
 		for line in lines[1][0]:
 			count = count + 1
 			training_set.append((line,lines[1][1]))
 			labels.append(lines[1][1])
-			for word in line:
-				allstatus.append(word)
 			if lines[0] in network:
 				with_id.append((network[lines[0]][0],line,lines[1][1]))
 			
@@ -233,8 +231,9 @@ def status(training_set):
 	for i in training_set:
 		text.append(i[0])
 		label.append(i[1])
-		
+
 	data = pd.DataFrame({'text':text, 'label':label})
+	
 	return data
 
 
@@ -242,19 +241,18 @@ def status(training_set):
 def network_prop(training_set, with_id):
 	net_size, betw, norm_betw, brok, norm_brok, status, label, length, tr, den = [],[],[], [], [], [], [], [], [], []
 	for lines in with_id:
-		length.append(len(lines[1]))
+		length.append(len(nltk.word_tokenize(lines[1])))
 		net_size.append(int(lines[0][0]))
 		betw.append(float(lines[0][1]))
 		norm_betw.append(float(lines[0][2]))
 		brok.append(int(lines[0][3]))
 		norm_brok.append(float(lines[0][4]))
-		status.append(' '.join(lines[1]))
+		status.append(lines[1])
 		label.append(lines[2])
 		tr.append(float(lines[0][5]))
 		den.append(float(lines[0][6]))
 	"""print('Average per status :',sum(length)/len(length))
 	print('Totaal woorden :',sum(length))"""
-	print(max(net_size))
 	l_10, l_20, l_30, l_40, l_50, l = [], [],[],[],[],[]
 	for i in length:
 		if i <= 10:
@@ -272,8 +270,8 @@ def network_prop(training_set, with_id):
 	
 	"""print(max(betw))
 	print(max(brok))
-	print(max(length))
-	print(len(l_10),len(l_20),len(l_30),len(l_40),len(l_50),len(l))"""
+	print(max(length))"""
+	print(len(l_10),len(l_20),len(l_30),len(l_40),len(l_50),len(l))
 	data = pd.DataFrame({'text':status,'label':label,'netw_size':net_size,'betw':betw,
 						'norm_betw':norm_betw,'brok':brok,'norm_brok':norm_brok,'trans':tr,'den':den})
 
@@ -289,20 +287,15 @@ def baseline(df):
 
 	# split corpus in train and test
 	X = df['text'].values
-	Y = df['label'].map({'extra':0,'intro':1})
-	Xtrain, Xtest, Ytrain, Ytest = train_test_split(X,Y, test_size=0.1, random_state=0)
+	Y = df['label'].map({'high-social':0,'low-social':1})
+	Xtrain, Xtest, Ytrain, Ytest = train_test_split(X,Y, test_size=0.1, random_state=1)
 	
 	# dummy classifier
 	tfidf = True
-
-# we use a dummy function as tokenizer and preprocessor,
-# since the texts are already preprocessed and tokenized.
 	if tfidf:
-		vec = TfidfVectorizer(preprocessor = identity,
-						  tokenizer = identity)
+		vec = TfidfVectorizer(tokenizer = tok)
 	else:
-		vec = CountVectorizer(preprocessor = identity,
-				tokenizer = identity)
+		vec = CountVectorizer(tokenizer = tok)
 				
 	dummy_classifier = DummyClassifier(random_state=0)
 	pipeline = Pipeline([('vec',vec),
@@ -539,7 +532,6 @@ def h4_list():
 
 #####################################################################
 
-## Tutorial: http://www.ritchieng.com/machine-learning-multinomial-naive-bayes-vectorization/
 
 class ArrayCaster(BaseEstimator, TransformerMixin):
   def fit(self, x, y=None):
@@ -548,43 +540,147 @@ class ArrayCaster(BaseEstimator, TransformerMixin):
   def transform(self, data):
     return np.transpose(np.matrix(data))
     
-    
-### http://weslack.com/question/1854200000002145488
-"""Scikit Classifiers """
+
+def tok(x):
+	tokens = nltk.word_tokenize(x)
+	return tokens
+ 
+"""Scikit Classifiers  Experiment 1"""
+
 def classify(df):
 	X = df['text'].values
-	y = df['label'].map({'extra':0,'intro':1})
-	#X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
-	#print('Total Training data: ',len(X_train))
-	#print('Total Test data: ',len(X_test))
-	vec = TfidfVectorizer(min_df=1,ngram_range=(1,4),smooth_idf=False)
-	count_vec = CountVectorizer(stop_words='english')
+	y = df['label'].map({'high-social':0,'low-social':1})
+	vec = TfidfVectorizer(tokenizer=tok, ngram_range=(1,4))
 	print('Start Classifier.....')
 	classifier = Pipeline([
 				('features', FeatureUnion([
-				('vect',Pipeline([
+				('statn', Pipeline([
 				('vec',vec),
-				('tf', TfidfTransformer())
+				('tf',TfidfTransformer())
+				])),
+				('pos', Pipeline([
+				('vec', PosTag()),
+				('dic',DictVectorizer())
+				])),
+				('ex', Pipeline([
+				('vec', ExtraWord()),
+				('dic',DictVectorizer())
+				])),
+				('pro', Pipeline([
+				('vec', Pronouns()),
+				('dic',DictVectorizer())
+				])),
+				('h4', Pipeline([
+				('vec', H4Lvd()),
+				('dic',DictVectorizer())
+				])),
+				('punt', Pipeline([
+				('vec', Punt()),
+				('dic',DictVectorizer())
+				])),
+				('poss', Pipeline([
+				('vec', PosNeg()),
+				('dic',DictVectorizer())
+				])),
+				('text', Pipeline([
+				('vec', TextStats()),
+				('dic',DictVectorizer())
 				])),
 				])),
-				('clf', SVC(kernel='linear',C=1.0))
+				('clf', LinearSVC())
 				])
-	cv = KFold(n_splits = 10, shuffle=False)
-	acc_score = []
+	cv = KFold(n_splits = 10, shuffle=True, random_state=0)
+	acc_score, pre_score, rec_score, f1_s = [],[],[],[]
+	k = 0
 	for train, test in cv.split(X):
 		X_train, X_test = X[train], X[test]
 		y_train, y_test = y[train], y[test]
 		classifier.fit(X_train,y_train)
 		predict = classifier.predict(X_test)
-		sc = metrics.accuracy_score(y_test, predict)
-		print('accuracy: ',sc)
-		acc_score.append(sc)
+		accuracy = metrics.accuracy_score(y_test, predict)
+		print('accuracy: ',accuracy)
+		precision = metrics.precision_score(y_test, predict)
+		print('precision: ',precision)
+		recall = metrics.recall_score(y_test, predict)
+		print('recall',recall)
+		f1 = metrics.f1_score(y_test, predict)
+		print('F1-score: ', f1)
+		acc_score.append(accuracy)
+		pre_score.append(precision)
+		rec_score.append(recall)
+		f1_s.append(f1)
 		print(metrics.confusion_matrix(y_test, predict))
-		labell = ['extra','intro']
+		labell = ['high-social','low-social']
 		print(metrics.classification_report(y_test,predict, target_names=labell))
+		miss = np.where(predict != y_test)
+		k = k + 1
+		print('{} time of testing'.format(k))
 	average_acc = sum(acc_score) / len(acc_score)
 	print('Average accuracy: ', average_acc)
+	average_pre = sum(pre_score) / len(pre_score)
+	print('Average precision: ', average_pre)
+	average_rec = sum(rec_score) / len(rec_score)
+	print('Average recall: ', average_rec)
+	average_f1 = sum(f1_s) / len(f1_s)
+	print('Average f1-score: ', average_f1)
 
+def cla_network(dataset):
+	data = dataset[['text','netw_size','betw','norm_betw','brok','norm_brok','trans','den']]
+	y = dataset['label'].map({'high-social':0,'low-social':1})
+	vec = TfidfVectorizer(tokenizer=tok, ngram_range=(1,4))
+	print('Start Classfy.....')
+	classifier = Pipeline([
+				('features', FeatureUnion([
+				('statn', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('vec',vec),
+				('tf',TfidfTransformer())
+				])),
+				('posT', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('vec',PosTag()),
+				('di',DictVectorizer())
+				])),
+				('norm_betw', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['den'], validate=False)),
+				('con',ArrayCaster())
+				])),
+				])),
+				('clf', MultinomialNB(alpha=0.01))
+				])
+	k = 0
+	cv = KFold(n_splits = 10, shuffle=True, random_state=0)
+	acc_score, pre_score, rec_score, f1_s = [],[],[],[]
+	for train, test in cv.split(data):
+		X_train, X_test = data.iloc[train], data.iloc[test]
+		y_train, y_test = y[train], y[test]
+		classifier.fit(X_train,y_train)
+		predict = classifier.predict(X_test)
+		accuracy = metrics.accuracy_score(y_test, predict)
+		print('accuracy: ',accuracy)
+		precision = metrics.precision_score(y_test, predict)
+		print('precision: ',precision)
+		recall = metrics.recall_score(y_test, predict)
+		print('recall',recall)
+		f1 = metrics.f1_score(y_test, predict)
+		print('F1-score: ', f1)
+		acc_score.append(accuracy)
+		pre_score.append(precision)
+		rec_score.append(recall)
+		f1_s.append(f1)
+		print(metrics.confusion_matrix(y_test, predict))
+		labell = ['high-social','low-social']
+		print(metrics.classification_report(y_test,predict, target_names=labell))
+		k = k + 1
+		print('{} time of testing'.format(k))
+	average_acc = sum(acc_score) / len(acc_score)
+	print('Average accuracy: ', average_acc)
+	average_pre = sum(pre_score) / len(pre_score)
+	print('Average precision: ', average_pre)
+	average_rec = sum(rec_score) / len(rec_score)
+	print('Average recall: ', average_rec)
+	average_f1 = sum(f1_s) / len(f1_s)
+	print('Average f1-score: ', average_f1)
 			
 ## Main program
 def Scikit_classify():
@@ -597,12 +693,12 @@ def Scikit_classify():
 	#baseline(data)
 	
 	## Experiment 1: Only linguistic features
-	data = status(training_set)
-	classify(data)
+	#data = status(training_set)
+	#classify(data)
 	
 	### Experiment 2: Get network properties
-	#dataset = network_prop(training_set, with_id)
-	#classify(dataset)
+	dataset = network_prop(training_set, with_id)
+	cla_network(dataset)
 	
 	### All status of a user to one
 	#dataset = read_whole()
@@ -611,6 +707,6 @@ def Scikit_classify():
 if __name__ == "__main__":
 	## Data preprocessing
 	#prepare_data()
-	
+
 	## Classification
 	Scikit_classify()
