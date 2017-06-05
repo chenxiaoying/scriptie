@@ -441,44 +441,55 @@ Average recall:  0.541515506314
 Average f1-score:  0.572067146115
 
 --------------------------------------------------------------
+tfidf + postag + extraword + pronouns + h4 + posneg + nb + 10-fold + shuffle=true
+Average accuracy:  0.619240401517
+Average precision:  0.605494610307
+Average recall:  0.544897022443
+Average f1-score:  0.573192253534
 
-------------------------------------------------------------
+tfidf + postag + extraword + pronouns + h4 + posneg + nb + 10-fold + shuffle=false
+Average accuracy:  0.529393981316
+Average precision:  0.503424023353
+Average recall:  0.438990580406
+Average f1-score:  0.462200482769
+*****************************************************************
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 TFIDF + PUNT + EXTRAWORD + POSTAG + POSNEG + PRONOUNS + text + SVC + 10-FOLD + shuffle=false
 Average accuracy:  0.603007307705
 Average precision:  0.581462928773
 Average recall:  0.553784105613
 Average f1-score:  0.566858138184
 
+--------------------------------------------------------------
+TFIDF + PUNT + POSNEG + PRONOUNS + SVC + 10-FOLD + shuffle=True
+Average accuracy:  0.626498872921
+Average precision:  0.620627456261
+Average recall:  0.527810973856
+Average f1-score:  0.570037676673
 
-TFIDF + PUNT + EXTRAWORD + POSTAG + POSNEG + PRONOUNS + SVC + 10-FOLD
+TFIDF + PUNT + POSNEG + PRONOUNS + SVC + 10-FOLD + shuffle=False
+Average accuracy:  0.522941961525
+Average precision:  0.49887256789
+Average recall:  0.403805285596
+Average f1-score:  0.436845001018
 
 ===========================================================
-extra + punt + pronouns + postag + posneg + decision + 10-fold + shuffle=True
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+pronouns + postag + posneg + H4 + decision + 10-fold + shuffle=True
+Average accuracy:  0.546027656164
+Average precision:  0.517524751047
+Average recall:  0.503118698996
+Average f1-score:  0.509716195342
 
-
-extra + punt + pronouns + postag + posneg + decision + 10-fold + shuffle=False
-
-
-===========================================================
-pro + extra + punt + h4 + afi + posneg + svc + 10-fold + shuffle = true
-
-
-pro + extra + punt + h4 + afi + posneg + svc + 10-fold + shuffle = false
-
-extra + punt + pronouns + posneg + svc + 10-fold + shuffle=True
-
-
-extra + punt + pronouns + posneg + svc + 10-fold + shuffle=False
-
+pronouns + postag + posneg + H4 + decision + 10-fold + shuffle=False
+Average accuracy:  0.497532632401
+Average precision:  0.464479821322
+Average recall:  0.440934875805
+Average f1-score:  0.446564355479
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 =======================================================================
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-postag + nb + betw + shuffule=true
-Average accuracy:  0.606227316005
-Average precision:  0.590514505797
-Average recall:  0.530184578023
-Average f1-score:  0.558203651678
 
 postag + networksize + nb + shuffule=true
 Average accuracy:  0.620448756551
@@ -486,17 +497,24 @@ Average precision:  0.61692051
 Average recall:  0.507694185672
 Average f1-score:  0.556560592736
 
-brok
-Average accuracy:  0.606731551707
-Average precision:  0.591359163387
-Average recall:  0.529744553369
-Average f1-score:  0.558326095211
+postag + nb + betw + shuffule=true
+Average accuracy:  0.606227316005
+Average precision:  0.590514505797
+Average recall:  0.530184578023
+Average f1-score:  0.558203651678
 
 norm_betw
-Average accuracy:  0.619744942385
-Average precision:  0.606674639333
+Average accuracy:  0.619946758732
+Average precision:  0.606984033407
 Average recall:  0.54281131328
-Average f1-score:  0.572528203297
+Average f1-score:  0.572660224617
+
+brok
+Average accuracy:  0.606731551707
+Average accuracy:  0.606832459881
+Average precision:  0.591512212442
+Average recall:  0.529744553369
+Average f1-score:  0.558386231728
 
 norm_brok
 Average accuracy:  0.620349984538
@@ -511,10 +529,325 @@ Average recall:  0.549254200476
 Average f1-score:  0.576148559671
 
 den
+Average accuracy:  0.620249076365
+Average precision:  0.606581090828
+Average recall:  0.546218827928
+Average f1-score:  0.574415355972
 
+-------------------------------------------------------------------
+den false
+Average accuracy:  0.514976726018
+Average precision:  0.485947359995
+Average recall:  0.39940266793
+Average f1-score:  0.430905673499
 
+trans false
+Average accuracy:  0.516287413333
+Average precision:  0.487567266981
+Average recall:  0.402961357802
+Average f1-score:  0.433735719712
+
+norm_betw 
+Average accuracy:  0.51235280834
+Average precision:  0.482312132989
+Average recall:  0.414966751983
+Average f1-score:  0.439038658922
+
+norm_brok
+Average accuracy:  0.515379951824
+Average precision:  0.486230221782
+Average recall:  0.400687415928
+Average f1-score:  0.431909344931
+
+netw_size 
+Average accuracy:  0.510137914619
+Average precision:  0.476856645989
+Average recall:  0.35680745492
+Average f1-score:  0.40054337906
+
+brok
+Average accuracy:  0.506315203769
+Average precision:  0.479322504716
+Average recall:  0.390625057144
+Average f1-score:  0.421078732933
+
+betw
+Average accuracy:  0.506012784415
+Average precision:  0.479293970038
+Average recall:  0.39113990952
+Average f1-score:  0.421326773788
 
 ===================================================================
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+netw_size + linear svc + true
+Average accuracy:  0.483200314931
+Average precision:  0.27556002278
+Average recall:  0.595642325399
+Average f1-score:  0.372153575826
+
+netw_size + linear svc + false
+Average accuracy:  0.470010131506
+Average precision:  0.373193093165
+Average recall:  0.735942796258
+Average f1-score:  0.48247521239
+-----------------------------------------------------------------------
+netw_size + svc + true
+Average accuracy:  0.647071628528
+Average precision:  0.634036587297
+Average recall:  0.58727906928
+Average f1-score:  0.609464442837
+
+netw_size + svc + false
+Average accuracy:  0.548902420169
+Average precision:  0.507030181336
+Average recall:  0.45011946943
+Average f1-score:  0.455140029225
+
+betw + svc + true
+Average accuracy:  0.955530520654
+Average precision:  0.957268032817
+Average recall:  0.947777098277
+Average f1-score:  0.952398434867
+
+betw + svc + false
+Average accuracy:  0.533525520003
+Average precision:  0.503665844577
+Average recall:  0.414550260152
+Average f1-score:  0.448004602076
+
+norm_betw + svc + false
+Average accuracy:  0.524859928876
+Average precision:  0.00869565217391
+Average recall:  0.000518134715026
+Average f1-score:  0.000977995110024
+linear
+Average accuracy:  0.519893354709
+Average precision:  0.354270818586
+Average recall:  0.697877169774
+Average f1-score:  0.460090951209
+
+norm_btwe + svc+ TRUE
+Average accuracy:  0.530702939357
+Average precision:  0.2
+Average recall:  0.000419783104721
+Average f1-score:  0.000837807488508
+
+brok + svc + false
+Average accuracy:  0.606841513134
+Average precision:  0.595776285674
+Average recall:  0.450041241892
+Average f1-score:  0.499878037939
+
+true+ brok
+Average accuracy:  0.974891767846
+Average precision:  0.981803380114
+Average recall:  0.964311014046
+Average f1-score:  0.972955505119
+
+norm_brok false
+Average accuracy:  0.530505090166
+Average precision:  0.0
+Average recall:  0.0
+Average f1-score:  0.0
+
+norm brok linear false
+Average accuracy:  0.528791787377
+Average precision:  0.507167475274
+Average recall:  0.40623224001
+Average f1-score:  0.44199066769
+
+
+norm+brok true
+Average accuracy:  0.530501326454
+Average precision:  0.0
+Average recall:  0.0
+Average f1-score:  0.0
+
+trans true + linear
+Average accuracy:  0.642934393412
+Average precision:  0.644317323471
+Average recall:  0.535136361264
+Average f1-score:  0.584468796128
+
+trans false
+Average accuracy:  0.530505090166
+Average precision:  0.0
+Average recall:  0.0
+Average f1-score:  0.0
+
+trans false linear
+Average accuracy:  0.558137145601
+Average precision:  0.536622474239
+Average recall:  0.419622014013
+Average f1-score:  0.463865725621
+
+den true 
+Average accuracy:  0.530501326454
+Average precision:  0.0
+Average recall:  0.0
+Average f1-score:  0.0
+linera
+Average accuracy:  0.629625195306
+Average precision:  0.624784192741
+Average recall:  0.529988650638
+Average f1-score:  0.573177015731
+
+den false linear
+Average accuracy:  0.52728375948
+Average precision:  0.504514208191
+Average recall:  0.395333148565
+Average f1-score:  0.434111313977
+
+------------------------------------------------------
+den true + decision
+Average accuracy:  0.608344861821
+Average precision:  0.578619039894
+Average recall:  0.608185852272
+Average f1-score:  0.592907744444
+
+false den + decision
+Average accuracy:  0.517696669216
+Average precision:  0.48555621478
+Average recall:  0.488055820707
+Average f1-score:  0.478894476744
+
+trans true
+Average accuracy:  0.762226469679
+Average precision:  0.749572676875
+Average recall:  0.740223652366
+Average f1-score:  0.744791444489
+
+trans false
+Average accuracy:  0.590815728655
+Average precision:  0.561458117776
+Average recall:  0.551053790753
+Average f1-score:  0.551617082237
+
+netw_size true
+Average accuracy:  0.950390001953
+Average precision:  0.94606543054
+Average recall:  0.948530567446
+Average f1-score:  0.947195576892
+
+netw_size false
+Average accuracy:  0.544319846359
+Average precision:  0.514136211632
+Average recall:  0.566261786019
+Average f1-score:  0.520238518197
+
+betw false
+Average accuracy:  0.521627713942
+Average precision:  0.492414243326
+Average recall:  0.511331017828
+Average f1-score:  0.488962294568
+
+betw true
+Average accuracy:  0.969548517301
+Average precision:  0.969981080826
+Average recall:  0.965022036391
+Average f1-score:  0.967479802704
+
+norm_betw true
+Average accuracy:  0.936070196283
+Average precision:  0.933957011929
+Average recall:  0.929869734437
+Average f1-score:  0.931786487434
+
+norm_betw false
+Average accuracy:  0.554079151883
+Average precision:  0.52745217298
+Average recall:  0.497923718714
+Average f1-score:  0.493272760567
+
+brok false
+Average accuracy:  0.548548224342
+Average precision:  0.51232460879
+Average recall:  0.567263946808
+Average f1-score:  0.523802868502
+
+brok true
+Average accuracy:  0.964001822857
+Average precision:  0.962724488881
+Average recall:  0.960466138763
+Average f1-score:  0.961564160249
+
+nomr_brok true
+Average accuracy:  0.577086520621
+Average precision:  0.548694033454
+Average recall:  0.559206352428
+Average f1-score:  0.553685325815
+
+norm_brok false
+Average accuracy:  0.513057334559
+Average precision:  0.482769147929
+Average recall:  0.466022236025
+Average f1-score:  0.468353409379
+
+====================================================
+=====================================================
+decision with all true
+Average accuracy:  0.986588164448
+Average precision:  0.98501782617
+Average recall:  0.986535574433
+Average f1-score:  0.985755058357
+
+false
+Average accuracy:  0.553916295042
+Average precision:  0.539428726023
+Average recall:  0.566019373057
+Average f1-score:  0.535878335678
+
+================================================
+nb + true
+Average accuracy:  0.575474939781
+Average precision:  0.544438099734
+Average recall:  0.591541975634
+Average f1-score:  0.566581723312
+
+nb fasle
+Average accuracy:  0.494525324696
+Average precision:  0.474028008562
+Average recall:  0.492005437004
+Average f1-score:  0.469973702498
+
+
+svc + true + all
+Average accuracy:  0.492191619739
+Average precision:  0.464092996595
+Average recall:  0.45287252667
+Average f1-score:  0.377834982764
+
+both linear and rbf true
+Average accuracy:  0.996874084502
+Average precision:  0.999567962003
+Average recall:  0.99377928833
+Average f1-score:  0.996663543039
+
+both linear and rbf false
+Average accuracy:  0.595051227174
+Average precision:  0.725630547394
+Average recall:  0.230513169216
+Average f1-score:  0.3098891678
+
+svc + false
+Average accuracy:  0.517291917581
+Average precision:  0.522854029132
+Average recall:  0.657899919314
+Average f1-score:  0.5140211629
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

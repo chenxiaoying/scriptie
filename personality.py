@@ -228,9 +228,16 @@ def read_whole():
 """ Prepare data for experiment 1 """
 def status(training_set):
 	text, label = [],[]
+	hi,lo = 0,0
 	for i in training_set:
 		text.append(i[0])
 		label.append(i[1])
+		if i[1] == 'high-social':
+			hi += 1
+		else:
+			lo += 1
+	
+	print('{} high-social status updates\n {} low-social status updates'.format(hi,lo))		
 
 	data = pd.DataFrame({'text':text, 'label':label})
 	
@@ -562,34 +569,10 @@ def classify(df):
 				('vec', PosTag()),
 				('dic',DictVectorizer())
 				])),
-				('ex', Pipeline([
-				('vec', ExtraWord()),
-				('dic',DictVectorizer())
 				])),
-				('pro', Pipeline([
-				('vec', Pronouns()),
-				('dic',DictVectorizer())
-				])),
-				('h4', Pipeline([
-				('vec', H4Lvd()),
-				('dic',DictVectorizer())
-				])),
-				('punt', Pipeline([
-				('vec', Punt()),
-				('dic',DictVectorizer())
-				])),
-				('poss', Pipeline([
-				('vec', PosNeg()),
-				('dic',DictVectorizer())
-				])),
-				('text', Pipeline([
-				('vec', TextStats()),
-				('dic',DictVectorizer())
-				])),
-				])),
-				('clf', LinearSVC())
+				('clf', MultinomialNB(alpha=0.01))
 				])
-	cv = KFold(n_splits = 10, shuffle=True, random_state=0)
+	cv = KFold(n_splits = 10, shuffle=False, random_state=0)
 	acc_score, pre_score, rec_score, f1_s = [],[],[],[]
 	k = 0
 	for train, test in cv.split(X):
@@ -638,20 +621,48 @@ def cla_network(dataset):
 				])),
 				('posT', Pipeline([
 				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
-				('vec',PosTag()),
+				('vec',Pronouns()),
 				('di',DictVectorizer())
 				])),
+				('punt', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('vec',Punt()),
+				('di',DictVectorizer())
+				])),
+				('po', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['text'], validate=False)),
+				('vec',PosNeg()),
+				('di',DictVectorizer())
+				])),
+				('netw', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['netw_size'], validate=False)),
+				('con',ArrayCaster())
+				])),
 				('norm_betw', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['betw'], validate=False)),
+				('con',ArrayCaster())
+				])),
+				('norm_brok', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['brok'], validate=False)),
+				('con',ArrayCaster())
+				])),
+				('trans', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['trans'], validate=False)),
+				('con',ArrayCaster())
+				])),
+				('den', Pipeline([
 				('sele', FunctionTransformer(lambda x: x['den'], validate=False)),
 				('con',ArrayCaster())
 				])),
 				])),
-				('clf', MultinomialNB(alpha=0.01))
+				('clf', LinearSVC()),
+				('cls', SVC())
 				])
 	k = 0
-	cv = KFold(n_splits = 10, shuffle=True, random_state=0)
+	cv = KFold(n_splits = 10, shuffle=False, random_state=0)
 	acc_score, pre_score, rec_score, f1_s = [],[],[],[]
 	for train, test in cv.split(data):
+		print('false svc all')
 		X_train, X_test = data.iloc[train], data.iloc[test]
 		y_train, y_test = y[train], y[test]
 		classifier.fit(X_train,y_train)
@@ -693,12 +704,12 @@ def Scikit_classify():
 	#baseline(data)
 	
 	## Experiment 1: Only linguistic features
-	#data = status(training_set)
-	#classify(data)
+	data = status(training_set)
+	classify(data)
 	
 	### Experiment 2: Get network properties
-	dataset = network_prop(training_set, with_id)
-	cla_network(dataset)
+	#dataset = network_prop(training_set, with_id)
+	#cla_network(dataset)
 	
 	### All status of a user to one
 	#dataset = read_whole()
