@@ -403,10 +403,17 @@ Average f1-score:  0.551755967995
 
 -------------------------------------------------
 postag + nb
-Average accuracy:  0.611673976787
-Average precision:  0.595590351554
-Average recall:  0.53923846965
-Average f1-score:  0.565937639257
+Average accuracy:  0.620249178087
+Average precision:  0.60658408894
+Average recall:  0.546200531676
+Average f1-score:  0.574418493461
+
+false
+Average accuracy:  0.530301646268
+Average precision:  0.504318630339
+Average recall:  0.439894124039
+Average f1-score:  0.463221516123
+
 
 -------------------------------------------------
 posag + decision
@@ -835,7 +842,176 @@ Average precision:  0.522854029132
 Average recall:  0.657899919314
 Average f1-score:  0.5140211629
 
+===========================================================================
+===========================================================================
+===========================================================================
+===========================================================================
+===========================================================================
+shuffle = false
+nb + h4
+Average accuracy:  0.517397708408
+Average precision:  0.489432116316
+Average recall:  0.413309252027
+Average f1-score:  0.440762135655
 
+nb + punt
+Average accuracy:  0.518304559585
+Average precision:  0.489651467427
+Average recall:  0.398992560895
+Average f1-score:  0.432499550237
+
+nb + extra
+Average accuracy:  0.518305576804
+Average precision:  0.490393667737
+Average recall:  0.41474182905
+Average f1-score:  0.44232095994
+
+nb + pronouns
+Average accuracy:  0.517195892061
+Average precision:  0.488800429785
+Average recall:  0.41400218155
+Average f1-score:  0.441139810251
+
+nb + postag
+Average accuracy:  0.530301646268
+Average precision:  0.504318630339
+Average recall:  0.439894124039
+Average f1-score:  0.463221516123
+
+nb + text length
+Average accuracy:  0.516186505159
+Average precision:  0.487021675698
+Average recall:  0.409194811337
+Average f1-score:  0.437742995356
+
+nb + posneg
+Average accuracy:  0.518204465187
+Average precision:  0.490255577212
+Average recall:  0.416495944763
+Average f1-score:  0.443124688562
+
+
+-------------------------------------------------
+decision + text
+Average accuracy:  0.508925388985
+Average precision:  0.47701962159
+Average recall:  0.463999373249
+Average f1-score:  0.465141647581
+
+dec + pronouns
+Average accuracy:  0.503888118063
+Average precision:  0.47056656481
+Average recall:  0.450937309619
+Average f1-score:  0.455748821545
+
+dec + extra words
+Average accuracy:  0.510137609453
+Average precision:  0.477107919145
+Average recall:  0.47000996776
+Average f1-score:  0.468912472752
+
+dec + posNeg
+Average accuracy:  0.500355314768
+Average precision:  0.470461985191
+Average recall:  0.452389770006
+Average f1-score:  0.454621321807
+
+dec + punt
+Average accuracy:  0.50550112301
+Average precision:  0.471534004441
+Average recall:  0.461250162676
+Average f1-score:  0.462161354766
+
+dec + postag
+Average accuracy:  0.505399604505
+Average precision:  0.47190972508
+Average recall:  0.449281751311
+Average f1-score:  0.455426371529
+
+dec + h4
+Average accuracy:  0.499852503174
+Average precision:  0.469225499188
+Average recall:  0.465477232809
+Average f1-score:  0.461861394811
+
+-----------------------------------------
+linearsvc + h4
+Average accuracy:  0.524354777677
+Average precision:  0.501284676302
+Average recall:  0.392256495802
+Average f1-score:  0.430892087035
+
+LSVC + POSTAG
+Average accuracy:  0.509934165555
+Average precision:  0.481687235464
+Average recall:  0.442842895192
+Average f1-score:  0.454137628148
+
+lsvc + pronouns
+Average accuracy:  0.525665770157
+Average precision:  0.502387783527
+Average recall:  0.38914112007
+Average f1-score:  0.429526496121
+
+lsvc + text
+Average accuracy:  0.52556364132
+Average precision:  0.505211132461
+Average recall:  0.380659292759
+Average f1-score:  0.422140672026
+
+lsvc + posneg
+Average accuracy:  0.523144795091
+Average precision:  0.499176578133
+Average recall:  0.381765372069
+Average f1-score:  0.423221259987
+
+lsvc + punt
+Average accuracy:  0.523344983887
+Average precision:  0.500551998565
+Average recall:  0.403878662855
+Average f1-score:  0.436859948561
+
+lsvc + extra
+Average accuracy:  0.52395155187
+Average precision:  0.500761650726
+Average recall:  0.387802160891
+Average f1-score:  0.427519005327
+
+lsvc + base tfidf
+Average accuracy:  0.524457008235
+Average precision:  0.501610624472
+Average recall:  0.376998747622
+Average f1-score:  0.420816892779
+
+decision + base tfidf
+Average accuracy:  0.497433351779
+Average precision:  0.465821015803
+Average recall:  0.461962182914
+Average f1-score:  0.458677331248
+
+nb + base
+Average accuracy:  0.518709006054
+Average precision:  0.490714028766
+Average recall:  0.417153911025
+Average f1-score:  0.443985946699
+
+nb + afi
+Average accuracy:  0.518911025846
+Average precision:  0.490865460719
+Average recall:  0.415453670481
+Average f1-score:  0.443121234708
+
+lsvc + afi
+Average accuracy:  0.524254276391
+Average precision:  0.502185461446
+Average recall:  0.389935931603
+Average f1-score:  0.429082042353
+
+dec + afi
+Average accuracy:  0.511647570066
+Average precision:  0.478268964657
+Average recall:  0.471733798356
+Average f1-score:  0.470864935358
 
 
 

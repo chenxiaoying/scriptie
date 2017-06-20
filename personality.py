@@ -34,8 +34,10 @@ from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.neighbors import KNeighborsClassifier
 
-""" Prepare training and test data"""
 
+""" Prepare training and test data
+	Read corpus with csv columns and
+	return dictionaries with all status and social network properties"""
 def read_corpus():
 	userinfo = {}
 	statusAll = {}
@@ -48,10 +50,11 @@ def read_corpus():
 				statusAll[line['#AUTHID']] = [line['STATUS']]
 				
 			userinfo[line['#AUTHID']] = ([line['NETWORKSIZE'],line['BETWEENNESS'],line['NBETWEENNESS'],line['BROKERAGE'],line['NBROKERAGE'],line['TRANSITIVITY'],line['DENSITY']],
-									line['sEXT'],line['sNEU'],line['sAGR'],line['sOPN'],line['sCON'],
-									line['cEXT'],line['cNEU'],line['cAGR'],line['cOPN'],line['cCON'])
+									line['sEXT'],line['sAGR'],
+									line['cEXT'],line['cAGR'])
 
-	
+
+
 	return statusAll,userinfo
 
 """ Calculate data distribution
@@ -64,27 +67,23 @@ def calc(userinfo):
 	count_ex = 0
 	d = []
 	for i in userinfo:
-		if userinfo[i][6] == 'y' and userinfo[i][8] == 'y':
+		if userinfo[i][3] == 'y' and userinfo[i][4] == 'y':
 			tot = tot + 1
-		if float(userinfo[i][1]) > 3 and float(userinfo[i][3]) > 3:
+		if float(userinfo[i][1]) > 3 and float(userinfo[i][2]) > 3:
 			extagr = extagr + 1
 			d.append(i)
-		if userinfo[i][6] == 'n' and userinfo[i][8] == 'n':
+		if userinfo[i][3] == 'n' and userinfo[i][4] == 'n':
 			t = t + 1	
 	print("Total yes: {}\nTotal no: {}\nTotal users with scores higher than 3: {}".format(tot,t,extagr))
 	
 	s_Ex = []
 	s_Ag = []
 	s_t = []
-	c = 0
 	for i in userinfo:
 		s_Ex.append(float(userinfo[i][1]))
-		s_Ag.append(float(userinfo[i][3]))
-		gem = (float(userinfo[i][1]) + float(userinfo[i][2]) + float(userinfo[i][3]) + float(userinfo[i][4]) + float(userinfo[i][5])) / 5
+		s_Ag.append(float(userinfo[i][2]))
+		gem = (float(userinfo[i][1]) + float(userinfo[i][2])) / 2
 		s_t.append(gem)
-		if float(userinfo[i][3]) < 2:
-			c += 1
-	print('c',c)
 	
 	score_Ex = sum(s_Ex) / len(s_Ex)
 	score_Ag = sum(s_Ag) / len(s_Ag)
@@ -92,7 +91,7 @@ def calc(userinfo):
 	print('Max extraversion: ',max(s_Ex))
 	print('Max agreeableness: ',max(s_Ag))
 	print('Max gemiddeld scores: ',max(s_t))
-	print('Gemiddeld score extraversion: {}\nGemiddeld score Agreeableness: {}\nGemiddeld score alle personaliteit: {}\n'.format(score_Ex, score_Ag, score_T))
+	print('Gemiddeld score extraversion: {}\nGemiddeld score Agreeableness: {}\nGemiddeld score sociability: {}\n'.format(score_Ex, score_Ag, score_T))
 	return d
 	
 
@@ -152,6 +151,8 @@ def calc_status(labeld_data):
 	print('Average status low sociable: ',average_in)
 	print('Average status high sociable: ',average_ex)
 
+
+""" All labeled data are store in pickle file"""
 def whole_data(labeld_data):
 	feats = []
 	for i in labeld_data:
@@ -161,22 +162,25 @@ def whole_data(labeld_data):
 		pickle.dump(feats, d_file)
 	print('{} Data already write to file!'.format(len(feats)))
 #############################################################
-""" Prepare data """
+""" Prepare data 
+	To make the development efficient
+	when the data are stored in pickle file is able to use
+	the functions are not running during every test"""
 def prepare_data():
 	### read from original dataset
 	statusAll,userinfo = read_corpus()
 	### calculate the distribution of dataset
-	d = calc(userinfo)
+	#d = calc(userinfo)
 	##### split dataset into introversion and extraversion
-	labeld_data = splitdata(d, statusAll)
+	#labeld_data = splitdata(d, statusAll)
 	##### Calculate status
-	calc_status(labeld_data)
+	#calc_status(labeld_data)
 	#### write data in file
-	whole_data(labeld_data)
+	#whole_data(labeld_data)
 
 ##############################################################
 
-""" Ready for classifier """
+""" Get data from pickle file and prepare data to structure in data frame """
 	
 ## dataset for scikit
 def read_training_data_s():
@@ -186,7 +190,7 @@ def read_training_data_s():
 	count = 0
 	data_with_labels = []
 	with_id = []
-	status, network = read_corpus()
+	network = pickle.load(open('netw_prop.pickle','rb'))
 	for lines in training_data:
 		for line in lines[1][0]:
 			count = count + 1
@@ -225,7 +229,8 @@ def read_whole():
 
 ###############################################################################
 
-""" Prepare data for experiment 1 """
+""" Prepare data for experiment 1 
+	Data are structured in data frame"""
 def status(training_set):
 	text, label = [],[]
 	hi,lo = 0,0
@@ -240,13 +245,14 @@ def status(training_set):
 	print('{} high-social status updates\n {} low-social status updates'.format(hi,lo))		
 
 	data = pd.DataFrame({'text':text, 'label':label})
-	
+
 	return data
 
 
-""" Get social network properties for experiment 2 """
+""" Get social network properties for experiment 2 
+	Data are structured in data frame"""
 def network_prop(training_set, with_id):
-	net_size, betw, norm_betw, brok, norm_brok, status, label, length, tr, den = [],[],[], [], [], [], [], [], [], []
+	net_size, betw, norm_betw, brok, norm_brok, status, label, length, den = [],[],[], [], [], [], [], [], []
 	for lines in with_id:
 		length.append(len(nltk.word_tokenize(lines[1])))
 		net_size.append(int(lines[0][0]))
@@ -256,7 +262,6 @@ def network_prop(training_set, with_id):
 		norm_brok.append(float(lines[0][4]))
 		status.append(lines[1])
 		label.append(lines[2])
-		tr.append(float(lines[0][5]))
 		den.append(float(lines[0][6]))
 	"""print('Average per status :',sum(length)/len(length))
 	print('Totaal woorden :',sum(length))"""
@@ -280,12 +285,14 @@ def network_prop(training_set, with_id):
 	print(max(length))"""
 	print(len(l_10),len(l_20),len(l_30),len(l_40),len(l_50),len(l))
 	data = pd.DataFrame({'text':status,'label':label,'netw_size':net_size,'betw':betw,
-						'norm_betw':norm_betw,'brok':brok,'norm_brok':norm_brok,'trans':tr,'den':den})
+						'norm_betw':norm_betw,'brok':brok,'norm_brok':norm_brok,'den':den})
+	
+	print(data)
 
 	return data
 	
 ##############################################################################
-"""Baseline"""
+"""Baseline experiment 1"""
 
 def identity(x):
 	return x
@@ -319,7 +326,7 @@ def baseline(df):
 """ Extract linguistic features """ 
 """ Classes for features extraction """
 	
-class TextStats(BaseEstimator, TransformerMixin):
+class TextStats(TransformerMixin):
 	"""Extract features from each document for DictVectorizer"""
 
 	def fit(self, x, y=None):
@@ -330,7 +337,7 @@ class TextStats(BaseEstimator, TransformerMixin):
 				 'word_length': np.mean([len(word) for word in text.split()])}
 				for text in posts]
 		
-class PosNeg(BaseEstimator, TransformerMixin):
+class PosNeg(TransformerMixin):
 	
 	def fit(self, x, y=None):
 		return self
@@ -349,7 +356,7 @@ class PosNeg(BaseEstimator, TransformerMixin):
 			feat.append({'is_pos': pos, 'is_neg': neg})
 		return feat
 		
-class Punt(BaseEstimator, TransformerMixin):
+class Punt(TransformerMixin):
 	
 	def fit(self, x, y=None):
 		return self
@@ -366,7 +373,7 @@ class Punt(BaseEstimator, TransformerMixin):
 		
 		return score
 
-class PosTag(BaseEstimator, TransformerMixin):
+class PosTag(TransformerMixin):
 	
 	def fit(self, x, y=None):
 		return self
@@ -380,7 +387,7 @@ class PosTag(BaseEstimator, TransformerMixin):
 		return score
 
 
-class Afi(BaseEstimator, TransformerMixin):
+class Afi(TransformerMixin):
 	
 	def fit(self, x, y=None):
 		return self
@@ -397,7 +404,7 @@ class Afi(BaseEstimator, TransformerMixin):
 		
 		return sco
 		
-class H4Lvd(BaseEstimator, TransformerMixin):
+class H4Lvd(TransformerMixin):
 	
 	def fit(self, x, y=None):
 		return self
@@ -436,7 +443,7 @@ class H4Lvd(BaseEstimator, TransformerMixin):
 						'decrease':dec,'Quality':qua, 'social':so})
 		return sco
 		
-class ExtraWord(BaseEstimator, TransformerMixin):
+class ExtraWord(TransformerMixin):
 	
 	def fit(self, x, y=None):
 		return self
@@ -463,7 +470,7 @@ class ExtraWord(BaseEstimator, TransformerMixin):
 		
 		return score
 		
-class Pronouns(BaseEstimator, TransformerMixin):
+class Pronouns(TransformerMixin):
 	
 	def fit(self, x, y=None):
 		return self
@@ -539,7 +546,7 @@ def h4_list():
 
 #####################################################################
 
-
+""" Convert social network features into feature sparse"""
 class ArrayCaster(BaseEstimator, TransformerMixin):
   def fit(self, x, y=None):
     return self
@@ -565,12 +572,42 @@ def classify(df):
 				('vec',vec),
 				('tf',TfidfTransformer())
 				])),
-				('pos', Pipeline([
-				('vec', PosTag()),
-				('dic',DictVectorizer())
+				('punt', Pipeline([
+				('vec',Punt()),
+				('di',DictVectorizer())
+				])),
+				('Afi', Pipeline([
+				('vec',Afi()),
+				('di',DictVectorizer())
+				])),
+				('PosTag', Pipeline([
+				('vec',PosTag()),
+				('di',DictVectorizer())
+				])),
+				('Posneg', Pipeline([
+				('vec',PosNeg()),
+				('di',DictVectorizer())
+				])),
+				('H4', Pipeline([
+				('vec',H4Lvd()),
+				('di',DictVectorizer())
+				])),
+				('textlength', Pipeline([
+				('vec',TextStats()),
+				('di',DictVectorizer())
+				])),
+				('pRONOUNS', Pipeline([
+				('vec',Pronouns()),
+				('di',DictVectorizer())
+				])),
+				('Extra', Pipeline([
+				('vec',ExtraWord()),
+				('di',DictVectorizer())
 				])),
 				])),
-				('clf', MultinomialNB(alpha=0.01))
+				('clf', DecisionTreeClassifier())
+				#('clf', MultinomialNB(alpha=0.01))
+				#('clf', LinearSVC())
 				])
 	cv = KFold(n_splits = 10, shuffle=False, random_state=0)
 	acc_score, pre_score, rec_score, f1_s = [],[],[],[]
@@ -607,6 +644,8 @@ def classify(df):
 	average_f1 = sum(f1_s) / len(f1_s)
 	print('Average f1-score: ', average_f1)
 
+
+""" Experiment 2"""
 def cla_network(dataset):
 	data = dataset[['text','netw_size','betw','norm_betw','brok','norm_brok','trans','den']]
 	y = dataset['label'].map({'high-social':0,'low-social':1})
@@ -638,31 +677,22 @@ def cla_network(dataset):
 				('sele', FunctionTransformer(lambda x: x['netw_size'], validate=False)),
 				('con',ArrayCaster())
 				])),
-				('norm_betw', Pipeline([
-				('sele', FunctionTransformer(lambda x: x['betw'], validate=False)),
-				('con',ArrayCaster())
-				])),
-				('norm_brok', Pipeline([
+				('brok', Pipeline([
 				('sele', FunctionTransformer(lambda x: x['brok'], validate=False)),
 				('con',ArrayCaster())
 				])),
-				('trans', Pipeline([
-				('sele', FunctionTransformer(lambda x: x['trans'], validate=False)),
-				('con',ArrayCaster())
-				])),
-				('den', Pipeline([
-				('sele', FunctionTransformer(lambda x: x['den'], validate=False)),
+				('betw', Pipeline([
+				('sele', FunctionTransformer(lambda x: x['betw'], validate=False)),
 				('con',ArrayCaster())
 				])),
 				])),
+				('clf', SVC()),
 				('clf', LinearSVC()),
-				('cls', SVC())
 				])
 	k = 0
-	cv = KFold(n_splits = 10, shuffle=False, random_state=0)
+	cv = KFold(n_splits = 10, shuffle=True, random_state=0)
 	acc_score, pre_score, rec_score, f1_s = [],[],[],[]
 	for train, test in cv.split(data):
-		print('false svc all')
 		X_train, X_test = data.iloc[train], data.iloc[test]
 		y_train, y_test = y[train], y[test]
 		classifier.fit(X_train,y_train)
@@ -706,7 +736,7 @@ def Scikit_classify():
 	## Experiment 1: Only linguistic features
 	data = status(training_set)
 	classify(data)
-	
+
 	### Experiment 2: Get network properties
 	#dataset = network_prop(training_set, with_id)
 	#cla_network(dataset)
