@@ -15,7 +15,11 @@ which can be run with: python3 personality.py
 
 'whole_data.pickle' is the file of the dictionary with all status updates from users.
 
+
 'thesis-IK.tex' is the tex file for scriptie
+
 'structure.tex' is the tex file for structure from nestor
+
 'bibliography.bib' is the bib file for bibliography
+
 'thesis-chen.pdf' is the pdf file of scriptie
