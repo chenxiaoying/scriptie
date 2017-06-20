@@ -1,0 +1,491 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Arsclassica Article
+% LaTeX Template
+% Version 1.1 (10/6/14)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Original author:
+% Lorenzo Pantieri (http://www.lorenzopantieri.net) with extensive modifications by:
+% Vel (vel@latextemplates.com)
+% Johan Bos (johan.bos@rug.nl)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[
+10pt, % Main document font size
+a4paper, % Paper type, use 'letterpaper' for US Letter paper
+oneside, % One page layout (no page indentation)
+%twoside, % Two page layout (page indentation for binding and different headers)
+headinclude,footinclude, % Extra spacing for the header and footer
+%BCOR5mm, % Binding correction
+] {book}% {scrartcl}
+
+\input{structure.tex} % Include the structure.tex file which specified the document structure and layout
+\usepackage{url}
+
+%----------------------------------------------------------------------------------------
+%	HYPHENATION
+%----------------------------------------------------------------------------------------
+
+\hyphenation{Fortran hy-phen-ation} % Specify custom hyphenation points in words with dashes where you would like hyphenation to occur, or alternatively, don't put any dashes in a word to stop hyphenation altogether
+
+
+
+%----------------------------------------------------------------------------------------
+%	TITLE AND AUTHOR(S)
+%----------------------------------------------------------------------------------------
+
+\title{\normalfont\spacedallcaps{title}} % titel
+
+\author{\spacedlowsmallcaps{author}} % The article author(s) - author affiliations need to be specified in the AUTHOR AFFILIATIONS block
+
+\date{} % An optional date to appear under the author(s)
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+%----------------------------------------------------------------------------------------
+%	HEADERS
+%----------------------------------------------------------------------------------------
+
+%\renewcommand{\chaptermark}[1]{\markright{\spacedlowsmallcaps{#1}}} % The header for all pages (oneside) or for even pages (twoside)
+%\renewcommand{\subsectionmark}[1]{\markright{\thesubsection~#1}} % Uncomment when using the twoside option - this modifies the header on odd pages
+%\lehead{\mbox{\llap{\small\thepage\kern1em\color{halfgray} \vline}\color{halfgray}\hspace{0.5em}\rightmark\hfil}} % The header style
+
+\pagestyle{scrheadings} % Enable the headers specified in this block
+
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\hypersetup{pageanchor=false}
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{figure}[h!] %  figure placement: here, top, bottom, or page
+\includegraphics[width=4in]{ruglogo} 
+\end{figure}
+
+\begin{center}
+\vspace{30 mm}
+\begingroup \linespread{1,75} \selectfont 
+\textsc{\LARGE Predicting sociability automatically from Facebook data}\\
+\textsc{\large Classifying sociability of Facebook users, based on textual features of their status updates and social network features based on their Facebook connections, with supervised machine learning methods}\\[1,25cm]
+\endgroup
+
+Xiaoying Chen\\[2,5cm]
+
+\end{center}
+\vfill
+\textbf{Bachelor thesis}\\  %\textbf{Master thesis}\\
+Informatiekunde\\  %Information Science\\
+Xiaoying Chen\\
+s2714140\\
+\today
+\end{titlepage}
+\hypersetup{pageanchor=true}
+
+
+
+%----------------------------------------------------------------------------------------
+%	ABSTRACT
+%----------------------------------------------------------------------------------------
+
+\pagenumbering{roman}
+\chapter*{Abstract}
+\markboth{Abstract}{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+This experiment tried to predict sociability based on Facebook data with supervised machine learning methods. Sociability is defined in this research as a combination of extraversion and agreeableness. To improve the accuracy of sociability recognition, multiple linguistic features were extracted from Facebook status updates. Since the dataset used is small, 10-fold cross validation was applied during the classification to make sure all data get trained and tested. Taking punctuation, pronouns, and positive and negative words as features, a Support Vector Machine classifier yielded the best performance of classifying sociability based on status updates. Social network features, such as network size, are also taken into account. Although social network features are weakly associated with sociability, they still affect the performance of the sociability prediction. Shuffling the dataset improves the accuracy by 44.05\%, which might be due to overfitting problem. Regardless of shuffling or not, the Support Vector Machine achieved the highest accuracy score after adding all effective social network features.
+
+
+
+%----------------------------------------------------------------------------------------
+%	TABLE OF CONTENTS & LISTS OF FIGURES AND TABLES
+%----------------------------------------------------------------------------------------
+\clearpage
+\setcounter{tocdepth}{3} % Set the depth of the table of contents to show sections and subsections only
+\tableofcontents % Print the table of contents
+
+%\listoffigures % Print the list of figures (optional, only if you have many figures)
+
+%\listoftables % Print the list of tables (optional, only if you have many tables)
+
+%\lstlistoflistings
+
+
+
+%----------------------------------------------------------------------------------------
+%	Preface
+%----------------------------------------------------------------------------------------
+
+\chapter*{Preface}
+\markboth{Preface}{Preface}
+\addcontentsline{toc}{chapter}{Preface}
+
+I applied the knowledge I learned from previous year of studying Information Science, and learned new things when developing the program. During this period, I received a lot of help and support from my parents, my sister, class mates, and friends. I am extremely grateful for their support. I want to thank my supervisor dr. L.M. Bosveld-de Smet, who gives me a lot of useful advice and feedback.
+
+
+%----------------------------------------------------------------------------------------
+%	INTRODUCTION
+%----------------------------------------------------------------------------------------
+
+\chapter{Introduction}
+\pagenumbering{arabic}
+
+Facebook is one of the most popular social media platforms. People interact with friends on Facebook. Is it possible to measure how sociable people are on Facebook? To answer this question, the term ‘sociability’ must be defined. Sociability is described by \citet{cheek1981shyness} as a willingness to interact with people. It describes how people interact with others in society. The personalities that also describe the interaction of people are extraversion and agreeableness. People with extraversion and agreeableness are usually sociable. In this study, I define sociability as the combination of extraversion and agreeableness.
+
+Measuring people’s personality can make decision making process effective. When recommender system recommends products to users, it can select products to users according to their personalities \citep{tkalcic2009personality}. Another example of personality measurement application is job recruitment. When someone is applying for a job, it is useful for the human resource manager to know the applicant’s personality. For example, \citet{Barrick1991big} mentioned that extroverts perform better in socially based jobs, such as, sales. But it is very time-consuming to annotate each person's personality manually. Labeling personalities with a machine learning method is more efficient. 
+
+In this research, I want to determine whether it is possible to predict sociability based on Facebook data using machine learning methods. Two types of data – textual and numerical – are used. Textual data refers to status updates. These status updates are user’s thoughts that users shared on their Facebook pages. Only textual features from status updates are taken in this research. Numerical data are social network properties such as network size. Because the dataset used in this study is relatively small, this study can determine which machine learning methods perform better with a small dataset.
+
+The main question of this research is: “Can sociability be automatically predicted from Facebook data using machine learning methods?” To answer this question, I split it up in two sub-questions. The first sub-question is: “Is it possible to predict sociability from Facebook status updates using linguistic features?” Based on the first question, the second question is: “Can social network properties improve the accuracy of sociability recognition from Facebook status updates?”
+
+The first step in answering the research questions is to obtain background information about the relationship between personalities and features (both linguistic and social network features). The relevant literature is also discussed. When enough information was obtained, the dataset used for this experiment was collected from MyPersonality project \citep{celli2013workshop} and preprocessed for the classification task. Since there are two sub-questions, the experiment was split into two sub-experiments. Both sub-experiments followed the same steps: feature selection, cross validation, classification and evaluation. After the data is classified into high and low sociability, the calculated accuracies are discussed. Using those scores, the research questions are answered.
+
+
+
+
+
+\chapter{Background}
+The goal of this research is to classify people as low or high sociability from their Facebook status updates and social network properties with supervised machine learning methods. To select the effective linguistic and social network features for sociability prediction, the correlations between features and personality are reviewed.
+
+\section{Personality}
+
+One of the popular personality models is Norman's Big Five personality model. It categorizes people based on five personality traits, namely: extraversion, agreeableness, openness to experience, neuroticism, and conscientiousness. Openness to experience, neuroticism, and conscientiousness will not be discussed in this research, since they are not related to sociability. Extraversion refers to a person who is outgoing, sociable and energetic \citep{mccrae1992introduction}. People with agreeableness are friendly and behave nicely to others. They are often trusted by others \citep{costa1991facet}. The personalities can be measured in degree. When someone is low in extraversion, this person is usually labeled as an introvert \citep{eysenck1956inheritance}. 
+
+As mentioned earlier, extraversion and agreeableness are merged into sociability in this research. When someone is high sociability, it means this person is sociable, friendly and outgoing. If a person is shy, prefers to be alone, unfriendly, and distrustful \citep{mccrae1992introduction}. This person is categorized as low sociable.
+
+\section{Linguistic features and personality}
+
+Personality can impact the language used when writing in daily life. Previous research found a correlation between linguistic cues and personalities. \citet{gill2002taking} studied the language use in text written by extroverts and introverts. They concluded that people with extraversion usually wrote longer sentences with more exclamation marks. Extroverts liked to refer to others, while self-referencing was frequently used by introverts. Sentences written by introverts were more concrete. 
+
+\citet{pennebaker1999linguistic} found that extraversion and agreeableness were positively correlated with positive emotion words. Agreeableness was also negatively correlated to negative emotion words. \citet{yarkoni2010personality} researched a large blog corpus and showed that extraversion was positively related to positive emotions and social processes. The study also found that agreeableness is negatively correlated to anger and swear words, but positively correlated to love words.
+
+\section{Social network and personality}
+
+Other studies analyzed the relationship between personality and social network use. \citet{amichai2010social} investigated the connection between the use of Facebook and personalities. They found that extroverts had more friends on Facebook than introverts, but there was no evidence to prove that people with agreeableness had more friends.
+
+Betweenness centrality calculates how central a person stands in a social network when the person brings two or more people or groups in connection. It is calculated by counting the times a person falls on the shortest paths between all people in the network  \citep{brandes2001faster}.The study of \citet{wehrli2008personality} concluded that extroverts had a central position in their social network, while there was no relation between centrality and agreeableness. 
+
+According to \citet{friggeri2012psychological}, extroverts were more willing to act as bridges between groups, while introverts were more likely to stay in a largely isolated group. The person who links two groups or people in connection is called as bridge. Brokerage is a social network property which calculates the extent that someone is acting like a bridge in social network \citep{haythornthwaite1996social}.
+
+Density is a social network measurement that calculates how many people in a person’ social network interact with each \citep{haythornthwaite1996social}. Additionally, \citet{golbeck2011predicting} showed that extroverts often were part of multiple groups. Since members of one group are not likely to know the members of another, the social network of extroverts was less dense than introverts, who tend to stick with one group.
+
+\section{Personality predicting with machine learning}
+
+Several studies predicted Big Five personalities from text. \citet{iacobelli2011large} collected writing from approximately 3000 bloggers to classify their personalities. They selected features that significantly related to each personality and performed with a Support Vector Machine (SVM) classifier. They achieved an accuracy of 71.68\% on extraversion and 78.31\% on agreeableness. \citet{wright2014personality} reported that Part of Speech n-grams can significantly improve the performance of personality prediction from text with SVM classifier. The experiment of \citet{mairesse2007using} was based on an essay corpus (Essay) and conversation corpus(EAR). They extracted linguistic features using LIWC and classified with multiple classifiers. The accuracy score was 56\% for both extraversion and agreeableness.
+
+\citet{celli2013workshop} organized a shared task of predicting personality from Facebook data and Essay corpus. They concluded that select features over a very large feature space were very effective to predict personality. \citet{markovikj2013mining} used only the Facebook dataset and yielded f-score of 0.904 with ranking algorithms and pointed out that punctuation, adjective and verbs were indicative features of extraversion and agreeableness.. \citet{alam2013personality} also participated in the shared task. They used a bag-of-words approach, tokenized the status sentences into tokens, and transformed tokens into a vector with the Tf-idf Vectorizer. They tried several classifiers (SVM, Bayesian Logistic Regression, and Multinomial Naive Bayes (MNB)) and achieved an average f-score of 0.58 with MNB.
+
+\chapter{Data and Material}
+To perform the research, a dataset of Facebook data with Big Five personality scores of users was prepared. Based on the given personality information, the dataset was annotated by high and low sociability. After categorizing the data into high and low sociability, necessary data from the dataset was preprocessed to make the classification task more efficient.
+
+\section{Collection} 
+
+The dataset used in this research comes from MyPersonality project \citet{celli2013workshop}. It contains 9917 Facebook status updates from 250 users. The dataset contains user id, status updates, time of post, scores of each personality of the Big Five, a yes-/no- label for each personality, and network properties. Every user in the dataset took the IPIP personality questionnaire. Personality scores are on a scale from 1 to 5, and are calculated for each user based on their answers to the questionnaire. The yes-/no- label for personality are categorized with the median split from the calculated scores. The network properties include network size, betweenness centrality, normalized betweenness centrality, brokerage, normalized brokerage, density, and transitivity. The dataset is in a CSV file. An example of raw data is available in figure \ref{fig:data} of 'Appendices'.
+
+\section{Material}
+The experiment is programmed in Python with the relevant Python toolkit. The module ‘csv’ was used to read the columns of CVS file, as it easily extracts information from the dataset. The extracted data are stored in pickle files. The toolkit ‘panda’ was used to restructure the dataset, so that features could be easily extracted when necessary. ‘NLTK.word\_tokenize’ were used to tokenize the sentences into tokens. The Afinn toolkit was used to calculate the positive and negative polarity of the status updates. The classification task was performed with 'scikit-learn'.
+
+\section{Annotation}
+As mentioned earlier, the personalities of users are given in two forms: scores and a yes-/no- label. To annotate the dataset, these personality information is used. In the first stage, high sociable people are users who get yes-labels for both extraversion and agreeableness. The rest of the users are considered low sociability. But this did not seem to work. When categorize in this way, the number of high sociable people is 57 and, the other 157 users are categorized as low sociability. The distribution of the two groups is not balanced, which might leads to unreliable results. The program have too much information about one class and not enough information about another class. A solution is to categorize users in three groups: high sociability (users with yes-labels for both extraversion and agreeableness), neutral sociability (user with one yes- label and one no-label) and low sociability (people with no-labels for both extraversion and agreeableness). With this method, the number of high sociability, neutral sociability and low sociability users are 57, 116 and 77, respectively. The data is still not distributed evenly. So, I decided to not use yes-/no-labels when annotating the dataset.
+
+Another method to annotate dataset in high and low sociability is based on the personality scores. Since the scores are measured from 1 to 5, 3 is the median score. I decide to split high and low sociability round the median. Users with both extraversion and agreeableness scores higher than 3 are categorized as high sociability. All others are categorized as low sociability. Using this rule, 128 users are high sociable and 122 are low sociable. The number of status updates from high sociability is 5261 compared to 4656 status updates from low sociable users. Now, the users are nearly evenly distributed. Thus, the data is categorized with this method.
+
+\section{Preprocessing}
+
+The raw dataset contains more information than necessary. The relevant data for this research are user id, status updates, scores for extraversion and agreeableness, network size, betweenness centrality, normalized centrality, brokerage, normalized brokerage, and density. To avoid running the whole raw data and structure again and again during development of the program, the dataset needed to be preprocessed. 
+
+The raw data was read with the Python function ‘csv.DictReader’. This function reads the column from CSV files by specifying the column name, and returns all values from that column. All statuses from users were put in a dictionary with user ids as keys and the values were the statuses of users, for example, ‘user\_1’: [‘status\_1’, ‘status\_2’].  Next, which class the user belongs to was checked with the above method (users who score higher than 3 for both extraversion and agreeableness are high sociability). This class label was added to each user, so the dictionary becomes in this format: ‘user\_1’: ([‘status\_1’,’status\_2'], label). The social network properties were also stored in the dictionary with user ids as keys and social network properties as values. Both dictionaries were stored separately in pickle files.
+
+For the first research question which only focuses on linguistic features, a data frame with status updates and sociability label was created with the Python module ‘Pandas’. The status updates and labels were read from the pickle file. Every status updates got a corresponding sociability label. 
+
+Social network properties were taken in research question 2. The data frame for experiment 2 contained status updates, sociability label, social network size, betweenness centrality, normalized betweenness centrality, brokerage, normalized brokerage, and density of users. It was exactly the same type data frame like create with only status updates, only social network features were added. See figure \ref{fig:data_text} of 'Appendices' for data frame with status updates, figure \ref{fig:data_social} for social network features in the data frame.
+
+Because the dataset is relatively small, I performed cross-validation on the whole dataset for classification instead of splitting data into training and test sets. More details for cross validation are described in the next chapter.
+
+\chapter{Method}
+As mentioned earlier, the experiment is divided into 2 sub-experiments to answer the two research questions separately. The first sub-experiment only focuses on linguistic features with different classifiers, while the second sub-experiment is based on sub-experiment 1 and adds social network properties. Both sub-experiments follow the same general steps: feature selection, cross-validation, classification, and evaluation.
+
+\section{Experiment 1}
+In the first experiment, the goal is to classify the high and low sociability based on status updates with linguistic features. The data used in this experiment is the data frame with only status updates and labels created in preprocessing.
+
+\subsection{Tokenization}
+Since the status updates read from the data frame are strings of sentences, the status updates needed to be tokenized before sending the status updates to the classifier, as the classifier yielded a better score when learned from tokens features instead of whole sentence. Tokenization was done with ‘nltk.word\_tokenize’. This tokenizer extracts words from sentences. 
+
+\subsection {Feature Selection}
+It is essential to extract linguistic features to improve the accuracy of the classification task. As mentioned earlier, according to previous studies, sentence length, punctuation, pronouns and positive and negative words are related to extraversion and agreeableness. In this experiment, the length of sentence and words and occurrences of punctuation, pronouns, and positive and negative words are counted. The most frequent 40 words used by people with extraversion or agreeableness are used as a feature. Part of Speech tagging was performed with 'nltk.pos\_tag'. To measure the positivity and negativity of words, two methods were used. The first method was to use the word lists which positivity and negativity were labeled. Hereby three lists were used: positive and negative word list created by \citet{liu2010sentiment} and a General Inquirer Category Listings (H4LVD) . The second method was to use the toolkit 'Afinn', that calculates the positivity and negativity of the sentence. Each feature was extracted separately and tested separately to measure the effect of each specific linguistic feature.  
+
+For the purpose of getting the extracted linguistic features in the classifier, vectorizers were defined for each feature. The vectorizer was defined in Python ‘Class’.  Every class contains two functions: ‘fit’ and ‘transform’. The function ‘fit’ is an empty function, which returns ‘self’. The function ‘transform’ returns the list with feature dictionaries of each status update. The class takes the scikit-learn class ‘TransformerMixin’ as parameter, which fits and transforms the data into arrays.  To keep the program simple, all linguistic features were extracted with the same structure. Thus, all linguistic features were structured in dictionaries with the same format: \{‘feature\_1’: 2, ‘feature\_2’: 5\}. The value of the feature means the occurrence of the feature in the status update. The dictionary for Pos-tagger was structured in: \{'word\_1':tag,'word\_2':tag\}. For an example of vectorizer see figure \ref{fig:posneg} in 'Appendices'.
+
+\subsection{Cross Validation}
+The dataset contains 9917 status updates of Facebook users, which is a relatively small number. To test all data in the dataset, I used 10-fold cross validation. It split the dataset into 10 parts; each time the program takes nine parts as training set and one part as a test set. The process was performed 10 times until all data from the dataset were trained and tested. The data was randomly split. 
+
+One of the parameters of the k-fold cross is ‘random state’; this was randomly set to 0. When setting the parameter ‘shuffle' to ‘True', all status updates of users were mixed. In other words, the order of status updates is changed and status updates from one user might be split into training and test set. When the parameter ‘shuffle' is set to ‘False', the order of status updates is not changed and when a user is in the test set, there is no information about this user in the training set. When testing with the parameter ‘shuffle=False’, the accuracies of prediction based on linguistic features do not show significant improvements compared to the baseline. Since this experiment is only based on linguistic features and every status update is unique, the ‘shuffle’ is set to ‘True’.
+
+\subsection{Classification}
+There are different classifiers that properly fit in text classification tasks. To figure out which works best in this dataset, three of the most commonly used classifiers are used in this research. The classifiers applied in this research are: Naïve Bayes, Support Vector Machine and decision tree. 
+
+Naïve Bayes classifier is available in scikit-learn—it is callable with the function ‘MultinomialNB’. The parameter set to this function is ‘alpha=0.01’, which shows the best score after several tests with other parameters. The Support Vector Machine classifier is useable with the scikit-learn function ‘SVC’; it is ‘rbf’ kernel and no extra parameter are set. The function ‘DecisionTreeClassifier’ can perform the classification task with the decision tree.
+
+In this research, the classifier takes two types of input. The first input is the tokenized status updates. This input is adding to the classifier with the scikit-learn function ‘TfidfVectorizer’. This function takes the tokenizer as parameter and then tokenize the input data into tokens. For each tokens it calculates Tf-idf ('tf' refers to the occurence of a word in the status update, 'idf' means the inversion of the occurences of the word in all status updates) for each word per status update. Additionally, N-grams are taken as a parameter of ‘TfidfVectorizer’; the range of n-gram is from 1 to 4. This range was selected because it returned the best score after several tests with other possible ranges. The arrays was converted with the scikit-learn function ‘TfidfTransformer’ into sparse features.
+
+The linguistic features are the second input to the classifier. For the purpose of combining features to the classifier, the scikit-learn function ‘FeatureUnion’ was applied. This function combines all features and the classifier in a ‘Pipeline’, which allows the classifier train and predict the input data based on multiple features. To let the classifier accept and use the features, they needed to transform into sparse feature representation. This was done with the  scikit-learn function ‘DictVectorizer’. The ‘DictVectorizer’ converted the arrays created in section ‘Feature Selection’ into sparse features.
+
+To show the effect of each classifier and linguistic feature, every linguistic feature was tested separately with each classifier. For example, when testing the effect of pronouns on the classification with SVM, the pipeline contained the following components: tokenized status updates with ‘TfidfVectorizer’ and ‘TfidfTransformer’, pronouns that convert with ‘DictVectorizer’, and SVM classifier. The result of testing showed that some linguistic features performed worse than when classified only with tokenized status updates with ‘TfidfVectorizer’ and ‘TfidfTransformer’. These linguistic features have a negative impact on the classification task. 
+
+The final step of this experiment was to combine all effective linguistic features into the classifier, and test which classifier yielded the better performance. Thus when combining all linguistic features, linguistic features that impact the classification task negatively were not added to the pipeline of the classifier.
+
+\section{Experiment 2}
+In this experiment, the classification task is based on both linguistic and social network features. This experiment was built based on experiment 1 with the addition of, the social network properties. Before implementing the social network features into the classifier, it is essential to check whether there are association between sociability and social network properties. These associations were calculated with Fisher’s exact test. 
+
+\subsection{Correlation social network properties and sociability}
+To investigate whether there is a correlation between social network properties and sociability, the Fisher’s exact test was performed. Fisher’s exact test determines the association between two nominal variables. Each social network property is split into two groups using the median split. All scores lower than the median are considered as low-score. Higher scores from the median are grouped as high-score. Fisher's exact test was performed separately for all social network properties. This test was performed with a 2x2 cross table from SPSS. It calculated the frequency of low and high scores appearing in low and high sociability. To determine the effect of the strength of the association between sociability and social network properties, Cramer’s V was applied.
+
+\subsection{Social network features}
+All social network properties are given in numerical values. There are in total five social network properties (network size, betweenness centrality, brokerage, transitivity, and density). The normalized scores for betweenness centrality and brokerage are also provided in the dataset and were structured in the data frame during preprocessing of data.
+
+The social network properties were stored in columns in the data frame. Multiple features have to be combined in the pipeline. Except for linguistic features, social network features also needed to be extracted from the data frame. To select the specific column in a data frame and fit the values of the selected column into pipeline of classifier, the scikit-learn function ‘FunctionTransformer’ was applied. This function selects the values from a column and converts the values into arrays. The converted arrays were transformed into sparse features with function ‘numpy.matrix’ in a self-defining vectorizer. The vectorizer is defined with the same method as in experiment 1.
+
+\subsection{Cross validation}
+10-fold cross validation was also performed in this experiment. Both 'False' and 'True' settings for the parameter 'shuffle' are used in this experiment, since there is a large difference of the accuracies of classify before and after shuffling the dataset. The 'random\_state' was also randomly set to '0' as experiment 1.
+
+\subsection{Classification}
+As experiment 1, Naïve Bayes, SVM, and decision tree classifiers were applied. The same parameter (alpha=0.01) was used for Naïve Bayes. Since there is a difference of the performance in linear kernel of SVM and ‘rbf’, both kernels are applied when classifying with SVM.
+
+For each of the linguistic features, the column status updates was selected with the scikit-learn function ‘FunctionTransformer’. The same method of processing the linguistic features as experiment 1 is performed in this experiment. The social network features were also taken into the pipeline with ‘FunctionTransformer’ and convert into sparse features. The same structure of pipeline and the feature union for classifying in experiment 1 was used in this experiment. The social network features were tested separately with each classifier; the effective features were combined to test a final accuracy.
+
+
+\section{Evaluation}
+For both experiments, to evaluate the performance of the program, the final scores are compared to the baseline. The average scores were calcultated for each 10-fold cross validation.
+
+\subsection{Baseline experiment 1}
+Since a 10-fold cross validation is performed during classification, the dataset is randomly split into 90\% training set and 10\% test set when calculating the baseline. After tokenizing the dataset with ‘NLTK.word\_tokenize’, the tokenized words were taken to the classifier.  A dummy classifier (scikit-learn class: ‘DummyClassifier’) classified the dataset with the simple rules, in this case, it predicts data with the distribution of training set’ class. 
+
+\subsection{Baseline experiment 2}
+Since experiment 2 is based on experiment 1, the baseline of experiment 2 is the final results of experiment 1. In this way, experiment 2 shows whether there are any sociability prediction from Facebook status updates improves or worsens when social network features are added. An additional baseline to experiment 2 is to get the accuracy of all effective linguistic features per classifier when the parameter ‘shuffle’ is set to ‘False’, as this helps evaluate the performance of adding social network properties with 'shuffle' is set to 'False'. 
+
+\chapter{Results and Discussion}
+
+\section{Experiment 1}
+\subsubsection{Linguistic features}
+\begin{table}[hbtp]\centering
+\caption{Accuracy of linguistic features separately with shuffling dataset.\label{table:lingse}}
+\begin{tabular}{|cccc|}
+\hline
+ & SVM & NB & Decision tree\\
+\hline
+Tf-idf & 0.625 & 0.615 & 0.537\\
+Extra words & 0.624 & 0.614 & 0.535\\
+Punctuation & 0.625 & 0.612 & 0.533\\
+Pronouns & 0.626 & 0.615 & 0.536\\
+Pos Neg & 0.626 & 0.614 & 0.538\\
+Pos-tag & 0.604 & 0.614 & 0.538\\
+Afinn & 0.624 & 0.615 & 0.535\\
+H4Lvd & 0.622 & 0.614 & 0.540\\
+Text Length & 0.622 & 0.614 & 0.544\\
+\hline
+\end{tabular}
+\end{table}
+Table~\ref{table:lingse} shows the accuracies of linguistic features separately with each classifier with shuffling the dataset. The results of 'shuffle='False' is available in figure \ref{table:lingno} in 'Appendix'. The accuracy scores of Tf-idf weighting with SVM and Naive Bayes are around 0.62, and there is little difference in accuracy after adding other features to the classifier. Accuracy scores for decision tree are all around 0.54, which is much lower than the results of other two classifiers.  
+
+Taking Pos-tagger as a feature, the accuracy of SVM is 0.59, which is 2\% lower than tokenizing the status updates with TfidfVectorizer. Taking Pos-tagger as a feature with NB, yields the highest accuracy 0.620 and it is the only effective feature with NB. Pos-tagger performed best using NB and decision tree, while it has the lowest score using SVM. The effective features with SVM are: punctuation, pronoun, and positive and negative words. Pronouns, positive and negative words, Pos-tagger, H4Lvd word list and length of sentence are effective linguistic features with the decision tree classifier.
+
+Some significant features mentioned in previous research were not significant in this study. \citet{pennebaker1999linguistic} pointed out that extraversion and agreeableness positively correlated with positive words, while both positive and negative words appear in both high sociability and low sociability in this research. The number of positive words occurs in high sociability is 2088 and 1754 for low sociability. The difference between the occurrences of positive words in high and low sociability is not large.
+
+One reason for this might be that all features are significant for either extraversion or agreeableness. Some features might be significant for extraversion, while it has no effect on low or high agreeableness.\citet{gill2002taking} mentioned that extroverts wrote longer sentences, while they did not found correlation between agreeableness and sentence length.  When I combine the two personalities into one category, the effect of the feature might be neutralized.
+
+There is a difference between the results of classifying before and after shuffling the dataset. When the status updates from a user are split into training and test set, the accuracy is higher than before shuffling the dataset. Each user has their own writing style. When the program learns the label from the training set for this writing style, it is easier to classify the status updates in the test set when meets the same style again.
+
+
+\subsubsection{Combining all linguistic features}
+
+\begin{table}[hbtp]\centering
+\caption{Accuracy of combining all effective linguistic features .\label{table:allin}}
+\begin{tabular}{|cccc|}
+\hline
+ & SVM & NB & Decision tree\\
+\hline
+Baseline &0.5 & 0.5 & 0.5\\
+classification & 0.626 & 0.620 & 0.546\\
+\hline
+\end{tabular}
+\end{table}
+
+The results of combining all effective features show that SVM yields the best performance; it is 12.6\% higher than the baseline. The accuracy of the Naive Bayes classifier has a slight advantage over the decision tree classifier. The highest score of Naive Bayes is 12\% higher than the highest score of the Decision tree. 
+
+The reason that SVM performed the best out of the three classifiers might be that it fit the data into a regression model and did not heavily rely on the words that appear in the training set as much as the NB and the decision tree did. Based on the typical words in the training set, the NB and the decision tree calculate the probabilities that words occur in both classes and use that to classify the status updates. A sentence with words that only appeared in test set is difficult to classify with NB and decision tree.
+
+The small corpus had a large effect on the performance of all three classifiers. The dataset contains 9917 status updates, while 3706 status updates contain fewer than 10 words. This is approximately 37\% of the dataset. The average length of status updates is 18. From these short sentences is hard to disguise the personality of people, it is also not easy for human to perform the task.
+
+
+\section{Experiment 2}
+\subsubsection{Correlation social network features and sociability}
+\begin{table}[hbtp]\centering
+\caption{Correlation social network features and sociability .\label{table:lingall}}
+\begin{tabular}{|ccc|}
+\hline
+ & Fisher's Exact test & Effect size\\
+\hline
+Network size & 0.017 & 0.152\\
+Betweenness Centrality & 0.057 & 0.128\\
+Normalized betweenness & 0.023 & 0.153\\
+Brokerage & 0.016 & 0.160\\
+Normalized brokerage & 0.039 & 0.151\\
+density & 0.022 & 0.151\\
+\hline
+\end{tabular}
+\end{table}
+The results of Fisher’s exact test showed that all significant values of network properties, except for betweenness centrality, are below the 0.05 significance level. When the p-value is lower than 0.05, it means that there is a significant association between the two nominal values. In this case, except for betweenness centrality, all network properties are associated with sociability. Furthermore, an effect size of 0.10 to 0.29 is considered a weak correlation. Cramer's V score for all social network properties is from 0.128 to 0.160. Therefore, there is a weak correlation between sociability and the mentioned social network properties.
+
+\subsubsection{Social network features}
+\begin{table}[hbtp]\centering
+\caption{Accuracy of social network properties separately with shuffling dataset.\label{table:sose}}
+\begin{tabular}{|cccc|}
+\hline
+ & SVM & NB & Decision tree\\
+\hline
+Network size & 0.647 & 0.620 & 0.950\\
+Betweenness & 0.955 & 0.606 & 0.970\\
+Normalized Betw & 0.530 & 0.620 & 0.936\\
+Brokerage & 0.975 & 0.607 & 0.964\\
+Normalized brok & 0.530 & 0.620 & 0.577\\
+Density & 0.630 & 0.620 & 0.608\\
+\hline
+\end{tabular}
+\end{table}
+
+When ‘shuffling’ was set to ‘True’, the accuracies of classifying with social network features are extremely high by some social network features. When taking brokerage as a feature, shuffling the dataset and classifying with SVM and decision tree, the accuracies are 0.975 and 0.964, respectively. But normalized brokerage and normalized betweenness centrality only achieves 0.530. Normalization of brokerage convert the large numbers of brokerage (for example, the brokerage of a user is 70505) to numbers in scale from 0 to 1. This leads to that multiple users having the same normalized brokerage, regardless high or low sociability, which reduces the effect on the classification with SVM and decision tree. The results of NB are relatively stable; the accuracies are between 0.606 and 0.620. When no shuffling of the dataset is performed, the accuracies of all three classifiers with social network features are between 0.506 and 0.607.
+
+\begin{table}[hbtp]\centering
+\caption{Accuracy of social network properties separately without shuffling dataset.\label{table:soso}}
+\begin{tabular}{|cccc|}
+\hline
+ & SVM & NB & Decision tree\\
+\hline
+Baseline not shuffle & 0.523 & 0.530 & 0.50\\
+Network size & 0.549 & 0.510 & 0.544\\
+Betweenness & 0.534 & 0.506 & 0.522\\
+Normalized Betw & 0.512 & 0.512 & 0.554\\
+Brokerage & 0.607 & 0.506 & 0.549\\
+Normalized brok & 0.515 & 0.515 & 0.513\\
+Density & 0.527 & 0.515 & 0.608\\
+\hline
+\end{tabular}
+\end{table}
+
+Compare to the baseline, social network features improve the accuracy when classifying with SVM and decision tree with 'shuffle' is set to 'False'. The most effective social network feature by SVM is brokerage, the accuracy is 0.607. Density performs the best with decision tree and yields an accuracy of 0.608. None of the social network features are effective with NB classifier. This might be caused by that some social network features are unique numbers, when there are no identical number in the training set, NB cannot calculate the probability of the belonging class of this number based on the known information. While SVM do not require identical data, it can predict sociability based on the data in the same feature sparse.
+
+\subsubsection{Combining all features}
+\begin{table}[hbtp]\centering
+\caption{Combining all effective linguistic features and social network features .\label{table:all}}
+\begin{tabular}{|cccc|}
+\hline
+ & SVM & NB & Decision tree\\
+\hline
+Baseline shuffling &0.626 & 0.620 & 0.546\\
+Shuffling & 0.996 & 0.575 & 0.986\\
+Baseline without & 0.523 & 0.530 & 0.50\\
+Without Shuffling & 0.595 & 0.495 & 0.554\\
+\hline
+\end{tabular}
+\end{table}
+Because all social network features with the decision tree classifier yield higher accuracy scores than the baseline, all social network properties are taken together for the final classification. Shuffling the dataset achieves extremely high accuracy score with SVM and the decision tree classifiers (with the highest accuracy of 97.5\%). The improvements of classifying with a shuffled dataset with SVM and the decision tree are 36.96\% and 44.05\%, respectively. The accuracy for NB was decreased by 4.5\% after adding social network properties. 
+
+From the accuracy score of without shuffling dataset, it can be concluded that social network properties have a slight impact on the prediction of sociability. As the results of Fisher’s exact test show, there is a weak correlation between social network properties and sociability. The improvement in prediction is 7.2\% with SVM and 5.59\% with the decision tree classifier. The accuracy score of NB was decreased by 3.53\%.
+
+When the statuses of a user are not split randomly into training and test sets, the accuracy scores are from 0.495 to 0.595. The reason for the high accuracy is that each user has written more than one status update, and social network properties are assigned to each status update. In other words, multiple status updates contain the same social network properties. Each user has a unique number for betweenness centrality and brokerage. When these status updates are split into training and test sets, the model can learn from the social network properties and label the status updates in the test set with the same label as in the training set. This is an overfitting problem. The performances are too perfect in the training set, while when the program meets new and unseen data, the performance decreases. Overfitting error comes easily when using a decision tree classifier, thanks to the rules the model created for decision making. When the program knows the answer for the test data from the training set, the classification is very accurate. In contrast, when the program is unfamiliar with the test data, it is difficult for the program to make the right decision with a decision tree. The Naïve Bayes classifier is relatively immune to overfitting problems, because it relies on probability algorithms. It calculates the probability of each status update and features and determines which class it belongs to.
+
+
+
+\chapter{Conclusion}
+
+This research investigates the possibility of sociability recognition with machine learning methods. It is possible to predict sociability from Facebook status updates with SVM, NB, and decision tree classifiers. Due to the short length of the status updates and small numbers of statuses in the sample, the linguistic feature selection does not show a significant effect on the prediction of sociability. The most frequent words of extraversion and agreeableness listed by \citet{yarkoni2010personality} do not show any improvement on the classification task with all three classifier. Using pronouns, positive and negative words and Pos-tagger as features with the Support Vector Machine classifier yields the best performance with an accuracy score 0.626. This is not consistent as the result of \citet{alam2013personality}. They found that NB was the most effective classifier to predict personality. In this study, SVM performs better than NB. This might be caused by that different method used, the difference in programming, and settings or parameters that were given to the classifier.
+
+\citet{amichai2010social} found that personality is connected with the use of Facebook. This research found that social network properties are weakly correlated with sociability. These social network features can improve the prediction of sociability using the SVM and decision tree classifiers. No improvement using the NB classifier was found. Train and test the status updates from the same user lead to overfitting error because every status updates from the same user shares the same social network values. It increases the accuracy from 0.6 to 0.99. However, test with unseen data also improves the performance of the prediction. The improvement of SVM is 7.2\%. Due to the size of the dataset, the program does not perform well overall. However, SVM is the best classifier with a small corpus. 
+
+The small corpus limits the performance of classification. Also, the linguistic features are not significantly correlated to sociability. Future work can be based on small corpus and try to find methods which improve the accuracy of classification. Also, it will also be great to find whether if there are any significant linguistic features which can be used to predict the personalities based on Facebook status updates with larger corpus. 
+
+
+
+%----------------------------------------------------------------------------------------
+%	BIBLIOGRAPHY
+%----------------------------------------------------------------------------------------
+\phantomsection
+\cleardoublepage
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliographystyle{chicago} 
+\bibliography{thesis-IK}
+
+
+%----------------------------------------------------------------------------------------
+%	Appendix
+%----------------------------------------------------------------------------------------
+\phantomsection
+\appendix
+\chapter{Appendices}
+
+To review the code of the program, visit the github repository.
+
+Github: https://github.com/chenxiaoying/scriptie.git
+
+\begin{figure}[!htb]
+    \centering 
+    \caption{Raw data .\label{fig:data}}
+    \includegraphics[width=5in, height=3.7in]{raw_data.png}
+\end{figure}
+
+\begin{figure}[!htb]
+    \centering 
+    \caption{Textual data in data frame .\label{fig:data_text}}
+    \includegraphics[width=5.2in, height=4in]{textual.png}
+\end{figure}
+
+\begin{figure}[!htb]
+    \centering 
+    \caption{Social network features in data frame .\label{fig:data_social}}
+    \includegraphics[width=5.5in, height=4.5in]{social.png}
+\end{figure}
+
+\begin{figure}[!htb]
+    \centering 
+    \caption{Positive and Negative words vectorizer. Each time a word from status updates also occurs in positive word list, count 1 for 'is\_pos'. Each time negative words in negative word list, plus 1 by 'is\_neg'}
+    \label{fig:posneg}
+    \includegraphics[width=4.2in, height=2.8in]{posneg.png}
+\end{figure}
+
+\begin{table}[hbtp]\centering
+\caption{Accuracy of linguistic features separately without shuffling.\label{table:lingno}}
+\begin{tabular}{|cccc|}
+\hline
+ & SVM & NB & Decision tree\\
+\hline
+Tf-idf & 0.524 & 0.519 & 0.50\\
+Extra words & 0.521 & 0.518 & 0.506\\
+Punctuation & 0.523 & 0.518 & 0.506\\
+Pronouns & 0.526 & 0.517 & 0.504\\
+Pos Neg & 0.523 & 0.518 & 0.50\\
+Pos-tag & 0.51 & 0.530 & 0.506\\
+Afinn & 0.524 & 0.519 & 0.512\\
+H4Lvd & 0.524 & 0.517 & 0.509\\
+Text Length & 0.526 & 0.516 & 0.509\\
+\hline
+\end{tabular}
+\end{table}
+
+
+\end{document}
+
+
+
